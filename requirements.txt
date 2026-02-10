@@ -1,1 +1,4 @@
-PyGObject>=3.42
+# PyGObject and GTK4 are system packages on Linux.
+# Install via your distro (e.g., apt/dnf/pacman) before running from source.
+PyGObject=3.54.5
+

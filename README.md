@@ -9,7 +9,7 @@ fast and minimal.
 ## Requirements
 
 - GTK4 runtime libraries.
-- PyGObject + GObject Introspection (for running from source).
+- PyGObject + GObject Introspection (for running from source). Install via your distro package manager.
 
 ## Installation
 
