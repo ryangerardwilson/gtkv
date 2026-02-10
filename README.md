@@ -1,5 +1,9 @@
 # gtkv
 
+Vim is one of the best-designed editing experiences in software, but its
+brilliance is boxed in by the terminal. `gtkv` breaks that ceiling: it keeps the
+Vim-first workflow while unlocking graphical capabilities like inline images.
+
 `gtkv` is a GTK4-first Vim-inspired editor with inline image support. It saves
 documents as `*.gtkv.html` with embedded base64 images, and keeps the workflow
 fast and minimal.
