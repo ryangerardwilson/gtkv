@@ -7,9 +7,6 @@ APP_HOME="$HOME/.${APP}"
 INSTALL_DIR="$APP_HOME/bin"
 APP_DIR="$APP_HOME/app"
 FILENAME="${APP}-linux-x64.tar.gz"
-XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
-CONFIG_DIR="$XDG_CONFIG_HOME/${APP}"
-CONFIG_FILE="$CONFIG_DIR/config.json"
 
 MUTED='\033[0;2m'
 RED='\033[0;31m'
@@ -176,17 +173,10 @@ else
   installed_label="$version_label"
 fi
 
-cat > "$INSTALL_DIR/$APP" <<EOF
+cat > "$INSTALL_DIR/$APP" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-PY_PATH=""
-if [[ -f "$CONFIG_FILE" ]]; then
-  PY_PATH="$(sed -n 's/.*"python_path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$CONFIG_FILE")"
-fi
-if [[ -z "$PY_PATH" ]]; then
-  PY_PATH="python3"
-fi
-"$PY_PATH" "${HOME}/.${APP}/app/${APP}/main.py" "\$@"
+"python3" "${HOME}/.${APP}/app/${APP}/main.py" "$@"
 EOF
 chmod 755 "$INSTALL_DIR/$APP"
 
