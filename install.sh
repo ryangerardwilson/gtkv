@@ -177,7 +177,8 @@ cat > "$INSTALL_DIR/$APP" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 APP=gtkv
-"python3" "${HOME}/.${APP}/app/${APP}/main.py" "$@"
+nohup python3 "${HOME}/.${APP}/app/${APP}/main.py" "$@" >/dev/null 2>&1 &
+disown
 EOF
 chmod 755 "$INSTALL_DIR/$APP"
 
@@ -222,10 +223,10 @@ if [[ -n "${BASH_VERSION:-}" ]]; then
     info "Installed bash completion to $completion_dir/gtkv"
   fi
   if [[ -w "$HOME/.bashrc" ]]; then
-    if ! grep -Fq "bash_completion.d" "$HOME/.bashrc" 2>/dev/null; then
-      printf '\n# GTKV bash completion\nif [ -d "%s" ]; then\n  for f in "%s"/*; do\n    [ -r "$f" ] && . "$f"\n  done\nfi\n' \
+    if ! grep -Fq "bash_completion.d/gtkv" "$HOME/.bashrc" 2>/dev/null; then
+      printf '\n# GTKV bash completion\nif [ -r "%s/gtkv" ]; then\n  . "%s/gtkv"\nfi\n' \
         "$completion_dir" "$completion_dir" >> "$HOME/.bashrc"
-      info "Added bash completion loader to ~/.bashrc"
+      info "Added gtkv completion source to ~/.bashrc"
     fi
   fi
 fi
