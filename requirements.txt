@@ -1,1 +1,1 @@
-pycairo>=1.16
+PyGObject==1.29.0
