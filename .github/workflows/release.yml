@@ -60,7 +60,7 @@ jobs:
               "$PYBIN" -m pip install -U pip
               echo "__version__ = \"${VERSION}\"" > _version.py
               mkdir -p dist/gtkv
-              cp -a main.py orchestrator.py config.py _version.py requirements.txt dist/gtkv/
+              cp -a main.py orchestrator.py config.py _version.py requirements.txt completions dist/gtkv/
               tar -C dist -czf gtkv-linux-x64.tar.gz gtkv
 
             '

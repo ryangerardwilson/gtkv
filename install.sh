@@ -213,3 +213,19 @@ fi
 
 info "Installed ${APP^^} (${installed_label:-unknown}) to $INSTALL_DIR/$APP"
 info "Run: ${APP} -h"
+
+if [[ -n "${BASH_VERSION:-}" ]]; then
+  completion_dir="${XDG_CONFIG_HOME:-$HOME/.config}/bash_completion.d"
+  mkdir -p "$completion_dir"
+  if [[ -f "${HOME}/.${APP}/app/${APP}/completions/gtkv.bash" ]]; then
+    cp "${HOME}/.${APP}/app/${APP}/completions/gtkv.bash" "$completion_dir/gtkv"
+    info "Installed bash completion to $completion_dir/gtkv"
+  fi
+  if [[ -w "$HOME/.bashrc" ]]; then
+    if ! grep -Fq "bash_completion.d" "$HOME/.bashrc" 2>/dev/null; then
+      printf '\n# GTKV bash completion\nif [ -d "%s" ]; then\n  for f in "%s"/*; do\n    [ -r "$f" ] && . "$f"\n  done\nfi\n' \
+        "$completion_dir" "$completion_dir" >> "$HOME/.bashrc"
+      info "Added bash completion loader to ~/.bashrc"
+    fi
+  fi
+fi

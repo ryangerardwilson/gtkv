@@ -57,6 +57,13 @@ python main.py
 - `-u` — upgrade to the latest release.
 - `-h` — show CLI help.
 
+### Bash completion
+
+The installer drops a completion script into
+`${XDG_CONFIG_HOME:-~/.config}/bash_completion.d/gtkv` and adds a loader to
+`~/.bashrc` if needed. After restarting your shell, `gtkv<Tab>` will complete
+only `*.gtkv.html` files.
+
 ---
 
 ## Releases
