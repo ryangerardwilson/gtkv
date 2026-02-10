@@ -7,6 +7,9 @@ APP_HOME="$HOME/.${APP}"
 INSTALL_DIR="$APP_HOME/bin"
 APP_DIR="$APP_HOME/app"
 FILENAME="${APP}-linux-x64.tar.gz"
+XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+CONFIG_DIR="$XDG_CONFIG_HOME/${APP}"
+CONFIG_FILE="$CONFIG_DIR/config.json"
 
 MUTED='\033[0;2m'
 RED='\033[0;31m'
@@ -120,13 +123,15 @@ fi
 
 mkdir -p "$INSTALL_DIR"
 
+rm -rf "$APP_DIR"
+rm -f "$INSTALL_DIR/$APP"
+
 if [[ -n "$bundle_path" ]]; then
   [[ -f "$bundle_path" ]] || die "Bundle not found: $bundle_path"
   info "Installing ${APP^^} from local bundle"
   tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/${APP}.XXXXXX")
   tar -xzf "$bundle_path" -C "$tmp_dir"
   [[ -f "$tmp_dir/${APP}/main.py" ]] || die "Archive missing ${APP}/main.py"
-  rm -rf "$APP_DIR"
   mkdir -p "$APP_DIR"
   mv "$tmp_dir/${APP}" "$APP_DIR"
   rm -rf "$tmp_dir"
@@ -165,7 +170,6 @@ else
   curl -# -L -o "$tmp_dir/$FILENAME" "$url"
   tar -xzf "$tmp_dir/$FILENAME" -C "$tmp_dir"
   [[ -f "$tmp_dir/${APP}/main.py" ]] || die "Archive missing ${APP}/main.py"
-  rm -rf "$APP_DIR"
   mkdir -p "$APP_DIR"
   mv "$tmp_dir/${APP}" "$APP_DIR"
   rm -rf "$tmp_dir"
@@ -173,8 +177,8 @@ else
 fi
 
 python_default=""
-if [[ -f "$APP_HOME/python-path" ]]; then
-  python_default=$(cat "$APP_HOME/python-path")
+if [[ -f "$CONFIG_FILE" ]]; then
+  python_default=$(sed -n 's/.*"python_path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$CONFIG_FILE")
 fi
 
 info "Enter the Python path to run ${APP^^} (GTK4 + PyGObject required)."
@@ -185,13 +189,21 @@ if [[ "$python_path" != "python3" && "$python_path" != "python" ]]; then
   [[ -x "$python_path" ]] || die "Python not found or not executable: $python_path"
 fi
 
-mkdir -p "$APP_HOME"
-printf '%s\n' "$python_path" > "$APP_HOME/python-path"
+mkdir -p "$CONFIG_DIR"
+cat > "$CONFIG_FILE" <<EOF
+{
+  "python_path": "${python_path}"
+}
+EOF
 
 cat > "$INSTALL_DIR/$APP" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
-PY_PATH="$(cat "$APP_HOME/python-path")"
+PY_PATH="$(sed -n 's/.*"python_path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$CONFIG_FILE")"
+if [[ -z "$PY_PATH" ]]; then
+  echo "Missing python_path in $CONFIG_FILE" >&2
+  exit 1
+fi
 "$PY_PATH" "${HOME}/.${APP}/app/${APP}/main.py" "\$@"
 EOF
 chmod 755 "$INSTALL_DIR/$APP"

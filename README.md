@@ -26,7 +26,8 @@ The script drops the unpacked bundle into `~/.gtkv/app` and a shim in
 you opt out). Once installed, run `gtkv -h` to confirm everything works.
 
 The installer will prompt for the Python interpreter path used to launch gtkv
-(it should be a Python with GTK4 + PyGObject installed).
+(it should be a Python with GTK4 + PyGObject installed). The chosen path is
+stored in `${XDG_CONFIG_HOME:-~/.config}/gtkv/config.json`.
 
 Installer flags of note:
 
