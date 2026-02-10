@@ -1,0 +1,1 @@
+# GTK4 and PyGObject are system packages; keep Python deps empty for now.
