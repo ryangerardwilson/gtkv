@@ -176,6 +176,7 @@ fi
 cat > "$INSTALL_DIR/$APP" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
+APP=gtkv
 "python3" "${HOME}/.${APP}/app/${APP}/main.py" "$@"
 EOF
 chmod 755 "$INSTALL_DIR/$APP"
