@@ -7,7 +7,7 @@ import shutil
 import subprocess
 import time
 from pathlib import Path
-from typing import Optional, cast
+from typing import Optional
 
 import gi
 
@@ -21,7 +21,7 @@ from editor_segments import Segment
 from editor_state import EditorState
 from persistence_gtkv_html import build_html, parse_html
 from services_image_cache import cleanup_cache as cleanup_image_cache
-from ui_editor_view import EditorView
+from ui_window_shell import WindowShell
 
 
 class Orchestrator:
@@ -38,9 +38,7 @@ class Orchestrator:
             on_inline_delete=self._handle_inline_image_delete,
         )
 
-        self._root: Optional[Gtk.Box] = None
-        self._status_label: Optional[Gtk.Label] = None
-        self._editor_view: Optional[EditorView] = None
+        self._shell: Optional[WindowShell] = None
 
     def start(self) -> None:
         """Initialize UI, connect signals, and load initial document."""
@@ -51,27 +49,14 @@ class Orchestrator:
         self._update_status()
 
     def _build_ui(self) -> None:
-        root = cast(Gtk.Box, Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0))
-        self._root = root
-        self._window.set_child(root)
-
-        self._apply_transparent_theme()
-
-        editor_view = EditorView(self._window)
-        self._editor_view = editor_view
-        root.append(editor_view.widget)
-
-        status_label = cast(Gtk.Label, Gtk.Label(label=""))
-        status_label.set_xalign(0.0)
-        self._status_label = status_label
-        root.append(status_label)
+        self._shell = WindowShell(self._window)
 
     def _connect_events(self) -> None:
-        if not self._editor_view:
+        if not self._shell:
             return
         controller = Gtk.EventControllerKey()
         controller.connect("key-pressed", self._on_key_pressed)
-        self._editor_view.add_key_controller(controller)
+        self._shell.editor_view.add_key_controller(controller)
 
     def _on_key_pressed(
         self,
@@ -97,8 +82,8 @@ class Orchestrator:
 
     def _open_image_chooser(self) -> None:
         if self._begin_image_selector_o():
-            if self._editor_view:
-                self._editor_view.grab_focus()
+            if self._shell:
+                self._shell.editor_view.grab_focus()
             return
         self._open_image_selector_gtk()
 
@@ -133,8 +118,8 @@ class Orchestrator:
             path = file.get_path()
             if path:
                 self.insert_image(Path(path))
-                if self._editor_view:
-                    self._editor_view.grab_focus()
+                if self._shell:
+                    self._shell.editor_view.grab_focus()
 
         dialog.open(self._window, None, _on_opened)
 
@@ -234,8 +219,8 @@ class Orchestrator:
                     ext = path.suffix.lstrip(".").lower()
                     if ext in allowed_exts:
                         self.insert_image(path)
-                        if self._editor_view:
-                            self._editor_view.grab_focus()
+                        if self._shell:
+                            self._shell.editor_view.grab_focus()
                         self._update_status()
                 return False
             if time.monotonic() - start_time > 300:
@@ -261,8 +246,8 @@ class Orchestrator:
                     return False
                 path = Path(first)
                 self.save_document(path)
-                if self._editor_view:
-                    self._editor_view.grab_focus()
+                if self._shell:
+                    self._shell.editor_view.grab_focus()
                 return False
             if time.monotonic() - start_time > 300:
                 self._update_status()
@@ -276,19 +261,19 @@ class Orchestrator:
         self._update_status()
 
     def _update_status(self) -> None:
-        if not self._status_label:
+        if not self._shell:
             return
         file_label = self._state.file_path.as_posix() if self._state.file_path else "[No File]"
-        self._status_label.set_text(f"{self._state.mode.upper()}  {file_label}")
+        self._shell.set_status_text(f"{self._state.mode.upper()}  {file_label}")
 
     def _set_status_hint(self, message: str) -> None:
-        if not self._status_label:
+        if not self._shell:
             return
-        self._status_label.set_text(message)
+        self._shell.set_status_hint(message)
 
     def load_document(self, path: Path) -> None:
         self._state.file_path = path
-        if not self._editor_view:
+        if not self._shell:
             return
         if path.name.endswith(".gtkv.html"):
             self._load_gtkv_html(path)
@@ -298,11 +283,11 @@ class Orchestrator:
                 contents = path.read_text(encoding="utf-8")
             except FileNotFoundError:
                 contents = ""
-            self._editor_view.set_text(contents)
+            self._shell.editor_view.set_text(contents)
         self._update_status()
 
     def save_document(self, path: Optional[Path] = None) -> None:
-        if not self._editor_view:
+        if not self._shell:
             return
         target = path or self._state.file_path
         if not target:
@@ -312,46 +297,20 @@ class Orchestrator:
         target.write_text(html_text, encoding="utf-8")
         self._state.file_path = target
         self._update_status()
-        if self._status_label:
-            self._status_label.set_text(f"SAVED  {target.as_posix()}")
+        if self._shell:
+            self._shell.set_status_text(f"SAVED  {target.as_posix()}")
         self.cleanup_cache()
 
     def insert_image(self, path: Path) -> None:
         """Insert an inline image node at the caret position."""
-        if not self._editor_view:
+        if not self._shell:
             return
-        self._editor_view.insert_image(path)
+        self._shell.editor_view.insert_image(path)
 
     def _handle_inline_image_delete(self, key_name: str) -> bool:
-        if not self._editor_view:
+        if not self._shell:
             return False
-        return self._editor_view.handle_inline_image_delete(key_name)
-
-    def _apply_transparent_theme(self) -> None:
-        if hasattr(self._window, "set_app_paintable"):
-            self._window.set_app_paintable(True)
-
-        css = b"""
-        window,
-        .background,
-        scrolledwindow,
-        textview,
-        textview text {
-            background-color: transparent;
-        }
-        .inline-image {
-            -gtk-icon-size: unset;
-        }
-        """
-        provider = Gtk.CssProvider()
-        provider.load_from_data(css)
-        display = Gdk.Display.get_default()
-        if display:
-            Gtk.StyleContext.add_provider_for_display(
-                display,
-                provider,
-                Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
-            )
+        return self._shell.editor_view.handle_inline_image_delete(key_name)
 
     def _handle_save_request(self) -> None:
         target = self._state.file_path
@@ -365,8 +324,8 @@ class Orchestrator:
         try:
             self.save_document(target)
         except OSError:
-            if self._status_label:
-                self._status_label.set_text("SAVE FAILED")
+            if self._shell:
+                self._shell.set_status_text("SAVE FAILED")
 
     def _prompt_for_save_path(self) -> Path | None:
         default_name = "untitled"
@@ -427,19 +386,19 @@ class Orchestrator:
         return build_html(segments)
 
     def _extract_document_segments(self) -> list[Segment]:
-        if not self._editor_view:
+        if not self._shell:
             return []
-        return self._editor_view.extract_segments()
+        return self._shell.editor_view.extract_segments()
 
     def _load_gtkv_html(self, path: Path) -> None:
-        if not self._editor_view:
+        if not self._shell:
             return
         try:
             contents = path.read_text(encoding="utf-8")
         except FileNotFoundError:
             contents = ""
         segments = parse_html(contents)
-        self._editor_view.load_segments(segments)
+        self._shell.editor_view.load_segments(segments)
 
     def cleanup_cache(self) -> None:
         cleanup_image_cache(
