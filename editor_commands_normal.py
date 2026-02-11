@@ -19,5 +19,6 @@ def handle_key(
         on_mode_change("visual")
         return True
     if key_name in {"h", "j", "k", "l"}:
-        return on_move(key_name, False)
+        on_move(key_name, False)
+        return True
     return False
