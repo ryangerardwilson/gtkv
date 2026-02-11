@@ -329,9 +329,7 @@ class EditorView:
             self._suppress_mark_handler = False
 
         if not self._text_view.get_editable():
-            if direction in {"j", "k"}:
-                self.snap_cursor_to_line_start()
-                return True
+            return True
         self._text_view.scroll_to_iter(new_iter, 0.2, False, 0.0, 0.0)
         self._queue_cursor_draw()
         return True
@@ -340,7 +338,6 @@ class EditorView:
         if self._suppress_mark_handler:
             return
         if not self._text_view.get_editable():
-            self.snap_cursor_to_line_start()
             return
         self._queue_cursor_draw()
 
@@ -381,8 +378,9 @@ class EditorView:
         line_index = insert_iter.get_line()
         line_offset = insert_iter.get_line_offset()
         if not self._text_view.get_editable():
-            insert_iter = insert_iter.copy()
-            insert_iter.set_line_offset(0)
+            if self._document:
+                row, col = self._document.get_cursor()
+                insert_iter = self._get_iter_at_line_offset(buffer, row, col)
         location = self._text_view.get_iter_location(insert_iter)
         loc_x = location.x
         loc_y = location.y
@@ -597,6 +595,9 @@ class EditorView:
             return
         buffer = self._text_view.get_buffer()
         insert_iter = buffer.get_iter_at_mark(buffer.get_insert())
+        if self._document and not self._text_view.get_editable():
+            row, col = self._document.get_cursor()
+            insert_iter = self._get_iter_at_line_offset(buffer, row, col)
         start_offset = insert_iter.get_offset()
         end_iter = insert_iter.copy()
         has_char = end_iter.forward_char()
