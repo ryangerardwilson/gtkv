@@ -30,6 +30,8 @@ class InlineImageNode:
 class EditorView:
     """Encapsulates the Gtk.TextView and inline image rendering."""
 
+    MAX_COLS = 88
+
     def __init__(self, window: Gtk.ApplicationWindow) -> None:
         self._window = window
         self._inline_images: dict[Gtk.TextChildAnchor, InlineImageNode] = {}
@@ -37,6 +39,7 @@ class EditorView:
         self._cursor_mode: str = "insert"
         self._cursor_tag: Gtk.TextTag | None = None
         self._cursor_tag_range: tuple[int, int] | None = None
+        self._suppress_insert_handler = False
 
         scroller = Gtk.ScrolledWindow()
         scroller.set_hexpand(True)
@@ -72,6 +75,7 @@ class EditorView:
         self._cursor_layer = cursor_layer
 
         buffer.connect("mark-set", self._on_buffer_mark_set)
+        buffer.connect("insert-text", self._on_buffer_insert_text)
 
     @property
     def widget(self) -> Gtk.Widget:
@@ -308,6 +312,34 @@ class EditorView:
         metrics = context.get_metrics(desc, context.get_language())
         return metrics.get_approximate_char_width() / Pango.SCALE
 
+    def _on_buffer_insert_text(
+        self, buffer: Gtk.TextBuffer, insert_iter: Gtk.TextIter, text: str, length: int
+    ) -> None:
+        if self._suppress_insert_handler:
+            return
+        if not self._text_view.get_editable():
+            return
+        if self.MAX_COLS <= 0:
+            return
+        self._suppress_insert_handler = True
+        buffer.stop_emission_by_name("insert-text")
+        try:
+            col = insert_iter.get_line_offset()
+            out_chars: list[str] = []
+            for ch in text:
+                if ch == "\n":
+                    out_chars.append(ch)
+                    col = 0
+                    continue
+                if col >= self.MAX_COLS:
+                    out_chars.append("\n")
+                    col = 0
+                out_chars.append(ch)
+                col += 1
+            buffer.insert(insert_iter, "".join(out_chars))
+        finally:
+            self._suppress_insert_handler = False
+
     def _update_cursor_block_tag(self) -> None:
         if not self._cursor_tag:
             return
@@ -416,6 +448,11 @@ class EditorView:
             max_width = max(320, min(1200, window_width - 120))
         else:
             max_width = 900
+        cell_width = self._get_cell_width()
+        if cell_width > 0:
+            max_cols_width = int(cell_width * self.MAX_COLS)
+            if max_cols_width > 0:
+                max_width = min(max_width, max_cols_width)
         pixbuf = GdkPixbuf.Pixbuf.new_from_file(path.as_posix())
         if pixbuf.get_width() <= max_width:
             return pixbuf
