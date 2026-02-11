@@ -107,6 +107,7 @@ class EditorView:
         """Insert an inline image node at the caret position."""
         buffer = self._text_view.get_buffer()
         insert_iter = buffer.get_iter_at_mark(buffer.get_insert())
+        insert_iter = self._ensure_image_fits_line(buffer, insert_iter, path)
         anchor = self._insert_inline_image_at_iter(path, insert_iter)
         after_iter = insert_iter.copy()
         if after_iter.forward_char():
@@ -197,9 +198,9 @@ class EditorView:
             elif isinstance(segment, ImageSegment):
                 image_path = materialize_data_uri(segment.data_uri)
                 if image_path:
-                    anchor = self._insert_inline_image_at_iter(
-                        image_path, buffer.get_end_iter()
-                    )
+                    end_iter = buffer.get_end_iter()
+                    end_iter = self._ensure_image_fits_line(buffer, end_iter, image_path)
+                    anchor = self._insert_inline_image_at_iter(image_path, end_iter)
                     if anchor is not None:
                         GLib.idle_add(self._load_inline_image, anchor, image_path)
 
@@ -291,7 +292,13 @@ class EditorView:
         insert_iter = buffer.get_iter_at_mark(buffer.get_insert())
         location = self._text_view.get_iter_location(insert_iter)
         if location.height == 0:
-            return None
+            line_iter = insert_iter.copy()
+            line_iter.set_line_offset(0)
+            line_y, line_height = self._text_view.get_line_yrange(line_iter)
+            if line_height == 0:
+                line_height = self._get_line_height()
+            location.y = line_y
+            location.height = line_height
         x, y = self._text_view.buffer_to_window_coords(
             Gtk.TextWindowType.TEXT,
             location.x,
@@ -311,6 +318,13 @@ class EditorView:
         desc = context.get_font_description()
         metrics = context.get_metrics(desc, context.get_language())
         return metrics.get_approximate_char_width() / Pango.SCALE
+
+    def _get_line_height(self) -> int:
+        context = self._text_view.get_pango_context()
+        desc = context.get_font_description()
+        metrics = context.get_metrics(desc, context.get_language())
+        height = (metrics.get_ascent() + metrics.get_descent()) / Pango.SCALE
+        return max(1, int(height))
 
     def _on_buffer_insert_text(
         self, buffer: Gtk.TextBuffer, insert_iter: Gtk.TextIter, text: str, length: int
@@ -348,7 +362,7 @@ class EditorView:
         start_offset = insert_iter.get_offset()
         end_iter = insert_iter.copy()
         has_char = end_iter.forward_char()
-        if not has_char:
+        if not has_char or end_iter.get_char() == "\n":
             if self._cursor_tag_range:
                 old_start, old_end = self._cursor_tag_range
                 buffer.remove_tag(
@@ -443,6 +457,15 @@ class EditorView:
         return False
 
     def _load_pixbuf(self, path: Path) -> GdkPixbuf.Pixbuf:
+        max_width = self._get_image_max_width()
+        pixbuf = GdkPixbuf.Pixbuf.new_from_file(path.as_posix())
+        if pixbuf.get_width() <= max_width:
+            return pixbuf
+        ratio = max_width / pixbuf.get_width()
+        new_height = max(1, int(pixbuf.get_height() * ratio))
+        return pixbuf.scale_simple(max_width, new_height, GdkPixbuf.InterpType.BILINEAR)
+
+    def _get_image_max_width(self) -> int:
         window_width = self._window.get_width() if self._window else 0
         if window_width and window_width > 200:
             max_width = max(320, min(1200, window_width - 120))
@@ -453,12 +476,27 @@ class EditorView:
             max_cols_width = int(cell_width * self.MAX_COLS)
             if max_cols_width > 0:
                 max_width = min(max_width, max_cols_width)
-        pixbuf = GdkPixbuf.Pixbuf.new_from_file(path.as_posix())
-        if pixbuf.get_width() <= max_width:
-            return pixbuf
-        ratio = max_width / pixbuf.get_width()
-        new_height = max(1, int(pixbuf.get_height() * ratio))
-        return pixbuf.scale_simple(max_width, new_height, GdkPixbuf.InterpType.BILINEAR)
+        return max_width
+
+    def _ensure_image_fits_line(
+        self, buffer: Gtk.TextBuffer, insert_iter: Gtk.TextIter, path: Path
+    ) -> Gtk.TextIter:
+        cell_width = self._get_cell_width()
+        if cell_width <= 0:
+            return insert_iter
+        try:
+            pixbuf = GdkPixbuf.Pixbuf.new_from_file(path.as_posix())
+        except (GLib.Error, OSError):
+            return insert_iter
+        max_width = self._get_image_max_width()
+        scaled_width = min(pixbuf.get_width(), max_width)
+        image_cols = max(1, int((scaled_width + cell_width - 1) // cell_width))
+        current_col = insert_iter.get_line_offset()
+        remaining = self.MAX_COLS - current_col
+        if current_col > 0 and image_cols > remaining:
+            buffer.insert(insert_iter, "\n")
+            return buffer.get_iter_at_mark(buffer.get_insert())
+        return insert_iter
 
     def _remove_inline_anchor(self, anchor: Gtk.TextChildAnchor) -> None:
         node = self._inline_images.pop(anchor, None)
