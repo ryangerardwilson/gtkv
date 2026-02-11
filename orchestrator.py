@@ -322,6 +322,8 @@ class Orchestrator:
             self._shell.editor_view.begin_visual_selection()
         else:
             self._shell.editor_view.clear_selection()
+        if mode in {"normal", "visual"}:
+            self._shell.editor_view.snap_cursor_to_line_start()
 
     def _handle_ex_command(self, text: str) -> bool:
         log_action(f"ex_command:{text}")

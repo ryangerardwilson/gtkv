@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import logging
 import base64
 import mimetypes
 from pathlib import Path
@@ -43,6 +44,7 @@ class EditorView:
         self._cursor_tag: Gtk.TextTag | None = None
         self._cursor_tag_range: tuple[int, int] | None = None
         self._suppress_insert_handler = False
+        self._suppress_mark_handler = False
 
         scroller = Gtk.ScrolledWindow()
         scroller.set_hexpand(True)
@@ -237,6 +239,21 @@ class EditorView:
         self._document.set_selection(offset, offset)
         self._queue_cursor_draw()
 
+    def snap_cursor_to_line_start(self) -> None:
+        buffer = self._text_view.get_buffer()
+        insert_iter = buffer.get_iter_at_mark(buffer.get_insert())
+        line_iter = insert_iter.copy()
+        line_iter.set_line_offset(0)
+        self._suppress_mark_handler = True
+        try:
+            buffer.place_cursor(line_iter)
+            buffer.select_range(line_iter, line_iter)
+            if self._document:
+                self._document.clear_selection()
+        finally:
+            self._suppress_mark_handler = False
+        self._queue_cursor_draw()
+
     def move_cursor(self, direction: str, extend_selection: bool) -> bool:
         buffer = self._text_view.get_buffer()
         insert_iter = buffer.get_iter_at_mark(buffer.get_insert())
@@ -253,6 +270,9 @@ class EditorView:
         elif direction == "k":
             moved = new_iter.backward_line()
         if not moved:
+            if not self._text_view.get_editable():
+                self.snap_cursor_to_line_start()
+                return True
             return False
 
         buffer.place_cursor(new_iter)
@@ -272,11 +292,19 @@ class EditorView:
             if self._document:
                 self._document.clear_selection()
 
+        if not self._text_view.get_editable():
+            self.snap_cursor_to_line_start()
+            return True
         self._text_view.scroll_to_iter(new_iter, 0.2, False, 0.0, 0.0)
         self._queue_cursor_draw()
         return True
 
     def _on_buffer_mark_set(self, _buffer: Gtk.TextBuffer, _iter: Gtk.TextIter, _mark: Gtk.TextMark) -> None:
+        if self._suppress_mark_handler:
+            return
+        if not self._text_view.get_editable():
+            self.snap_cursor_to_line_start()
+            return
         self._queue_cursor_draw()
 
     def _queue_cursor_draw(self) -> None:
@@ -284,12 +312,18 @@ class EditorView:
         self._cursor_layer.queue_draw()
 
     def _draw_cursor(self, _area: Gtk.DrawingArea, ctx, _width: int, _height: int) -> None:
+        outline_only = False
         if self._cursor_tag_range is not None:
-            return
+            outline_only = True
         rect = self._compute_cursor_rect()
         if rect is None:
             return
         x, y, w, h = rect
+        if outline_only:
+            ctx.set_source_rgba(0.0, 0.0, 0.0, 0.9)
+            ctx.rectangle(x + 0.5, y + 0.5, max(0.0, w - 1.0), max(0.0, h - 1.0))
+            ctx.stroke()
+            return
         ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0)
         ctx.rectangle(x, y, w, h)
         ctx.fill()
@@ -297,18 +331,93 @@ class EditorView:
     def _compute_cursor_rect(self) -> tuple[float, float, float, float] | None:
         buffer = self._text_view.get_buffer()
         insert_iter = buffer.get_iter_at_mark(buffer.get_insert())
+        line_index = insert_iter.get_line()
+        line_offset = insert_iter.get_line_offset()
+        if not self._text_view.get_editable():
+            insert_iter = insert_iter.copy()
+            insert_iter.set_line_offset(0)
         location = self._text_view.get_iter_location(insert_iter)
         loc_x = location.x
         loc_y = location.y
         loc_h = location.height
-        if location.height == 0:
+        if loc_h == 0:
             line_iter = insert_iter.copy()
             line_iter.set_line_offset(0)
-            line_y, line_height = self._text_view.get_line_yrange(line_iter)
-            if line_height == 0:
-                line_height = self._get_line_height()
-            loc_y = line_y
-            loc_h = line_height
+            line_y, line_h = self._text_view.get_line_yrange(line_iter)
+            self._log_cursor_debug(
+                "cursor_line_yrange",
+                line_index=line_index,
+                line_offset=line_offset,
+                loc_x=loc_x,
+                loc_y=loc_y,
+                loc_h=loc_h,
+                line_y=line_y,
+                line_h=line_h,
+            )
+            if line_h > 0:
+                loc_y = line_y
+                loc_h = line_h
+            else:
+                default_h = self._get_line_height()
+                line_index = insert_iter.get_line()
+                line_count = buffer.get_line_count()
+                next_index = line_index + 1
+                while next_index < line_count:
+                    next_iter = buffer.get_iter_at_line(next_index)
+                    if isinstance(next_iter, tuple):
+                        next_iter = next_iter[0]
+                    next_iter.set_line_offset(0)
+                    next_y, next_h = self._text_view.get_line_yrange(next_iter)
+                    if next_h > 0:
+                        gap = next_index - line_index
+                        loc_y = next_y - (default_h * gap)
+                        loc_h = default_h
+                        self._log_cursor_debug(
+                            "cursor_next_line_fallback",
+                            line_index=line_index,
+                            line_offset=line_offset,
+                            next_index=next_index,
+                            next_y=next_y,
+                            next_h=next_h,
+                            loc_y=loc_y,
+                            loc_h=loc_h,
+                        )
+                        break
+                    next_index += 1
+                else:
+                    prev_index = line_index - 1
+                    while prev_index >= 0:
+                        prev_iter = buffer.get_iter_at_line(prev_index)
+                        if isinstance(prev_iter, tuple):
+                            prev_iter = prev_iter[0]
+                        prev_iter.set_line_offset(0)
+                        prev_y, prev_h = self._text_view.get_line_yrange(prev_iter)
+                        if prev_h > 0:
+                            gap = line_index - prev_index
+                            loc_y = prev_y + prev_h + (default_h * (gap - 1))
+                            loc_h = default_h
+                            self._log_cursor_debug(
+                                "cursor_prev_line_fallback",
+                                line_index=line_index,
+                                line_offset=line_offset,
+                                prev_index=prev_index,
+                                prev_y=prev_y,
+                                prev_h=prev_h,
+                                loc_y=loc_y,
+                                loc_h=loc_h,
+                            )
+                            break
+                        prev_index -= 1
+                    else:
+                        loc_h = default_h
+                        loc_y = 0
+                        self._log_cursor_debug(
+                            "cursor_default_fallback",
+                            line_index=line_index,
+                            line_offset=line_offset,
+                            loc_y=loc_y,
+                            loc_h=loc_h,
+                        )
         x, y = self._text_view.buffer_to_window_coords(
             Gtk.TextWindowType.TEXT,
             loc_x,
@@ -321,7 +430,24 @@ class EditorView:
         cell_width = self._get_cell_width()
         if cell_width <= 0:
             cell_width = max(1.0, float(location.width))
+        self._log_cursor_debug(
+            "cursor_final",
+            line_index=line_index,
+            line_offset=line_offset,
+            x=x,
+            y=y,
+            cell_width=cell_width,
+            loc_h=loc_h,
+        )
         return float(x), float(y), float(cell_width), float(loc_h)
+
+    @staticmethod
+    def _log_cursor_debug(event: str, **data: object) -> None:
+        logger = logging.getLogger("gtkv")
+        if not logger.handlers:
+            return
+        payload = ", ".join(f"{key}={value}" for key, value in data.items())
+        logger.debug("%s: %s", event, payload)
 
     def _get_cell_width_for_view(self, text_view: Gtk.TextView) -> float:
         context = text_view.get_pango_context()
