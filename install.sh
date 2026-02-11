@@ -177,6 +177,11 @@ cat > "$INSTALL_DIR/$APP" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 APP=gtkv
+case "${1:-}" in
+  -v|--version|-h|--help)
+    exec python3 "${HOME}/.${APP}/app/${APP}/main.py" "$@"
+    ;;
+esac
 nohup python3 "${HOME}/.${APP}/app/${APP}/main.py" "$@" >/dev/null 2>&1 &
 disown
 EOF
