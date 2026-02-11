@@ -298,18 +298,21 @@ class EditorView:
         buffer = self._text_view.get_buffer()
         insert_iter = buffer.get_iter_at_mark(buffer.get_insert())
         location = self._text_view.get_iter_location(insert_iter)
+        loc_x = location.x
+        loc_y = location.y
+        loc_h = location.height
         if location.height == 0:
             line_iter = insert_iter.copy()
             line_iter.set_line_offset(0)
             line_y, line_height = self._text_view.get_line_yrange(line_iter)
             if line_height == 0:
                 line_height = self._get_line_height()
-            location.y = line_y
-            location.height = line_height
+            loc_y = line_y
+            loc_h = line_height
         x, y = self._text_view.buffer_to_window_coords(
             Gtk.TextWindowType.TEXT,
-            location.x,
-            location.y,
+            loc_x,
+            loc_y,
         )
         translated = self._text_view.translate_coordinates(self._overlay, x, y)
         if translated is None:
@@ -318,7 +321,7 @@ class EditorView:
         cell_width = self._get_cell_width()
         if cell_width <= 0:
             cell_width = max(1.0, float(location.width))
-        return float(x), float(y), float(cell_width), float(location.height)
+        return float(x), float(y), float(cell_width), float(loc_h)
 
     def _get_cell_width_for_view(self, text_view: Gtk.TextView) -> float:
         context = text_view.get_pango_context()
