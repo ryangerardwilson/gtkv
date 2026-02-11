@@ -22,7 +22,10 @@ def parse_args(argv: Sequence[str]) -> AppConfig:
     parser.add_argument("-v", "--version", action="store_true", help="Show installed version")
     parser.add_argument("-u", "--upgrade", action="store_true", help="Upgrade to latest release")
     parser.add_argument("file", nargs="?", help="Optional file to open on startup")
-    args = parser.parse_args(argv)
+    if hasattr(parser, "parse_intermixed_args"):
+        args = parser.parse_intermixed_args(argv)
+    else:
+        args = parser.parse_args(argv)
     return AppConfig(
         startup_file=args.file,
         cleanup_cache=args.cleanup_cache,
