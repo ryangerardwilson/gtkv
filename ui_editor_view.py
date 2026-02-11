@@ -35,6 +35,8 @@ class EditorView:
         self._inline_images: dict[Gtk.TextChildAnchor, InlineImageNode] = {}
         self._document: DocumentModel | None = None
         self._cursor_mode: str = "insert"
+        self._cursor_tag: Gtk.TextTag | None = None
+        self._cursor_tag_range: tuple[int, int] | None = None
 
         scroller = Gtk.ScrolledWindow()
         scroller.set_hexpand(True)
@@ -46,6 +48,13 @@ class EditorView:
         text_view.set_monospace(True)
         self._text_view = text_view
         scroller.set_child(text_view)
+
+        buffer = text_view.get_buffer()
+        self._cursor_tag = buffer.create_tag(
+            "cursor-block",
+            background="white",
+            foreground="black",
+        )
 
         overlay = Gtk.Overlay()
         overlay.set_hexpand(True)
@@ -61,7 +70,6 @@ class EditorView:
         overlay.add_overlay(cursor_layer)
         self._cursor_layer = cursor_layer
 
-        buffer = text_view.get_buffer()
         buffer.connect("mark-set", self._on_buffer_mark_set)
 
     @property
@@ -79,7 +87,7 @@ class EditorView:
 
     def set_cursor_mode(self, mode: str) -> None:
         self._cursor_mode = mode
-        self._text_view.set_cursor_visible(mode == "insert")
+        self._text_view.set_cursor_visible(False)
         self._queue_cursor_draw()
 
     def set_text(self, text: str) -> None:
@@ -259,16 +267,15 @@ class EditorView:
         self._queue_cursor_draw()
 
     def _queue_cursor_draw(self) -> None:
+        self._update_cursor_block_tag()
         self._cursor_layer.queue_draw()
 
     def _draw_cursor(self, _area: Gtk.DrawingArea, ctx, _width: int, _height: int) -> None:
-        if self._cursor_mode == "insert":
-            return
         rect = self._compute_cursor_rect()
         if rect is None:
             return
         x, y, w, h = rect
-        ctx.set_source_rgba(1.0, 1.0, 1.0, 0.6)
+        ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0)
         ctx.rectangle(x, y, w, h)
         ctx.fill()
 
@@ -297,6 +304,37 @@ class EditorView:
         desc = context.get_font_description()
         metrics = context.get_metrics(desc, context.get_language())
         return metrics.get_approximate_char_width() / Pango.SCALE
+
+    def _update_cursor_block_tag(self) -> None:
+        if not self._cursor_tag:
+            return
+        buffer = self._text_view.get_buffer()
+        insert_iter = buffer.get_iter_at_mark(buffer.get_insert())
+        start_offset = insert_iter.get_offset()
+        end_iter = insert_iter.copy()
+        has_char = end_iter.forward_char()
+        if not has_char:
+            if self._cursor_tag_range:
+                old_start, old_end = self._cursor_tag_range
+                buffer.remove_tag(
+                    self._cursor_tag,
+                    buffer.get_iter_at_offset(old_start),
+                    buffer.get_iter_at_offset(old_end),
+                )
+                self._cursor_tag_range = None
+            return
+        end_offset = end_iter.get_offset()
+        if self._cursor_tag_range == (start_offset, end_offset):
+            return
+        if self._cursor_tag_range:
+            old_start, old_end = self._cursor_tag_range
+            buffer.remove_tag(
+                self._cursor_tag,
+                buffer.get_iter_at_offset(old_start),
+                buffer.get_iter_at_offset(old_end),
+            )
+        buffer.apply_tag(self._cursor_tag, insert_iter, end_iter)
+        self._cursor_tag_range = (start_offset, end_offset)
 
     def _build_inline_image_widget(self, path: Path) -> Gtk.Widget:
         stack = Gtk.Stack()

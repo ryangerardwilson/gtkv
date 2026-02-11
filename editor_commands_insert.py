@@ -18,6 +18,4 @@ def handle_key(
         return True
     if key_name in {"BackSpace", "Delete"}:
         return on_inline_delete(key_name)
-    if on_move and key_name in {"h", "j", "k", "l"}:
-        return on_move(key_name, False)
     return False
