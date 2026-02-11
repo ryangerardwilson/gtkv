@@ -55,6 +55,9 @@ class EditorView:
     def grab_focus(self) -> None:
         self._text_view.grab_focus()
 
+    def set_editable(self, editable: bool) -> None:
+        self._text_view.set_editable(editable)
+
     def set_text(self, text: str) -> None:
         buffer = self._text_view.get_buffer()
         buffer.set_text(text)

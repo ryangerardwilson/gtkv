@@ -70,6 +70,7 @@ class Orchestrator:
         )
         self._command_controller.bind()
         self._shell.editor_view.set_document(self._document)
+        self._shell.editor_view.set_editable(self._state.mode == "insert")
 
     def _connect_events(self) -> None:
         if not self._shell:
@@ -314,6 +315,7 @@ class Orchestrator:
         self._state.set_mode(mode)
         if not self._shell:
             return
+        self._shell.editor_view.set_editable(mode == "insert")
         if mode == "visual":
             self._shell.editor_view.begin_visual_selection()
         else:
