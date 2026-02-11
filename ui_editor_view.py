@@ -312,18 +312,10 @@ class EditorView:
         self._cursor_layer.queue_draw()
 
     def _draw_cursor(self, _area: Gtk.DrawingArea, ctx, _width: int, _height: int) -> None:
-        outline_only = False
-        if self._cursor_tag_range is not None:
-            outline_only = True
         rect = self._compute_cursor_rect()
         if rect is None:
             return
         x, y, w, h = rect
-        if outline_only:
-            ctx.set_source_rgba(0.0, 0.0, 0.0, 0.9)
-            ctx.rectangle(x + 0.5, y + 0.5, max(0.0, w - 1.0), max(0.0, h - 1.0))
-            ctx.stroke()
-            return
         ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0)
         ctx.rectangle(x, y, w, h)
         ctx.fill()
