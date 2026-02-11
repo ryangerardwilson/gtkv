@@ -15,24 +15,25 @@ INSTALL_SH_URL = "https://raw.githubusercontent.com/ryangerardwilson/gtkv/main/i
 from orchestrator import Orchestrator
 
 
-def parse_args(argv: Sequence[str]) -> AppConfig:
+def parse_args(argv: Sequence[str]) -> tuple[AppConfig, list[str]]:
     parser = argparse.ArgumentParser(description="Vim-like GTK editor with image support")
     parser.add_argument("-c", dest="cleanup_cache", action="store_true", help="Clean cache and exit")
     parser.add_argument("-d", "--debug", dest="debug", action="store_true", help="Enable debug logging")
     parser.add_argument("-v", "--version", action="store_true", help="Show installed version")
     parser.add_argument("-u", "--upgrade", action="store_true", help="Upgrade to latest release")
     parser.add_argument("file", nargs="?", help="Optional file to open on startup")
-    if hasattr(parser, "parse_intermixed_args"):
-        args = parser.parse_intermixed_args(argv)
+    if hasattr(parser, "parse_known_intermixed_args"):
+        args, gtk_args = parser.parse_known_intermixed_args(argv)
     else:
-        args = parser.parse_args(argv)
-    return AppConfig(
+        args, gtk_args = parser.parse_known_args(argv)
+    config = AppConfig(
         startup_file=args.file,
         cleanup_cache=args.cleanup_cache,
         show_version=args.version,
         upgrade=args.upgrade,
         debug=args.debug,
     )
+    return config, gtk_args
 
 
 def _run_upgrade() -> int:
@@ -98,7 +99,7 @@ def build_application(config: AppConfig):
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
-    config = parse_args(args)
+    config, gtk_args = parse_args(args)
     setup_debug_logging(config.debug, Path("debug.log"))
     if config.show_version:
         print(__version__)
@@ -106,7 +107,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if config.upgrade:
         return _run_upgrade()
     app = build_application(config)
-    return app.run(args)
+    return app.run(gtk_args)
 
 
 if __name__ == "__main__":
