@@ -19,3 +19,4 @@ class AppConfig:
     debug: bool = False
     font_family: str | None = None
     font_size: int = 11
+    tab_width: int = 4

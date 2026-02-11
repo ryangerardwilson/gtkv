@@ -53,6 +53,7 @@ class EditorView:
         text_view.set_wrap_mode(Gtk.WrapMode.NONE)
         text_view.set_monospace(True)
         self._apply_font(text_view)
+        self._apply_tab_width(text_view)
         self._text_view = text_view
         scroller.set_child(text_view)
 
@@ -319,11 +320,14 @@ class EditorView:
             cell_width = max(1.0, float(location.width))
         return float(x), float(y), float(cell_width), float(location.height)
 
-    def _get_cell_width(self) -> float:
-        context = self._text_view.get_pango_context()
+    def _get_cell_width_for_view(self, text_view: Gtk.TextView) -> float:
+        context = text_view.get_pango_context()
         desc = context.get_font_description()
         metrics = context.get_metrics(desc, context.get_language())
         return metrics.get_approximate_char_width() / Pango.SCALE
+
+    def _get_cell_width(self) -> float:
+        return self._get_cell_width_for_view(self._text_view)
 
     def _apply_font(self, text_view: Gtk.TextView) -> None:
         if not self._config.font_family and not self._config.font_size:
@@ -348,6 +352,15 @@ class EditorView:
                 provider,
                 Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
             )
+
+    def _apply_tab_width(self, text_view: Gtk.TextView) -> None:
+        cell_width = self._get_cell_width_for_view(text_view)
+        if cell_width <= 0:
+            return
+        tab_width = int(cell_width * max(1, self._config.tab_width))
+        tabs = Pango.TabArray(1, True)
+        tabs.set_tab(0, Pango.TabAlign.LEFT, tab_width)
+        text_view.set_tabs(tabs)
 
     def _get_line_height(self) -> int:
         context = self._text_view.get_pango_context()
