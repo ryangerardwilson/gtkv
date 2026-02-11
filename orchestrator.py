@@ -23,6 +23,7 @@ from editor_segments import Segment
 from editor_state import EditorState
 from persistence_gtkv_html import build_html, parse_html
 from services_image_cache import cleanup_cache as cleanup_image_cache
+from ui_status_controller import StatusController
 from ui_window_shell import WindowShell
 
 
@@ -40,6 +41,7 @@ class Orchestrator:
             on_inline_delete=self._handle_inline_image_delete,
         )
         self._command_controller: Optional[CommandController] = None
+        self._status_controller: Optional[StatusController] = None
 
         self._shell: Optional[WindowShell] = None
 
@@ -53,6 +55,7 @@ class Orchestrator:
 
     def _build_ui(self) -> None:
         self._shell = WindowShell(self._window)
+        self._status_controller = StatusController(self._shell)
         self._command_controller = CommandController(
             pane=self._shell.command_pane,
             on_ex_command=self._handle_ex_command,
@@ -334,15 +337,14 @@ class Orchestrator:
         return self._shell.editor_view.search_next(term)
 
     def _update_status(self) -> None:
-        if not self._shell:
+        if not self._status_controller:
             return
-        file_label = self._state.file_path.as_posix() if self._state.file_path else "[No File]"
-        self._shell.set_status_text(f"{self._state.mode.upper()}  {file_label}")
+        self._status_controller.update_status(self._state.mode, self._state.file_path)
 
     def _set_status_hint(self, message: str) -> None:
-        if not self._shell:
+        if not self._status_controller:
             return
-        self._shell.set_status_hint(message)
+        self._status_controller.set_hint(message)
 
     def load_document(self, path: Path) -> None:
         self._state.file_path = path
@@ -370,8 +372,8 @@ class Orchestrator:
         target.write_text(html_text, encoding="utf-8")
         self._state.file_path = target
         self._update_status()
-        if self._shell:
-            self._shell.set_status_text(f"SAVED  {target.as_posix()}")
+        if self._status_controller:
+            self._status_controller.set_status_text(f"SAVED  {target.as_posix()}")
         self.cleanup_cache()
 
     def insert_image(self, path: Path) -> None:
@@ -397,8 +399,8 @@ class Orchestrator:
         try:
             self.save_document(target)
         except OSError:
-            if self._shell:
-                self._shell.set_status_text("SAVE FAILED")
+            if self._status_controller:
+                self._status_controller.set_status_text("SAVE FAILED")
 
     def _prompt_for_save_path(self) -> Path | None:
         default_name = "untitled"

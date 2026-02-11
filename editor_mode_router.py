@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
+from editor_commands_insert import handle_key as handle_insert_key
+from editor_commands_normal import handle_key as handle_normal_key
 from editor_state import EditorState
 
 
@@ -19,18 +21,7 @@ class ModeRouter:
 
     def handle_key(self, key_name: str) -> bool:
         if self._state.mode == "normal":
-            if key_name == "i":
-                self._on_mode_change("insert")
-                return True
-            if key_name == ":":
-                # Placeholder for command-line mode.
-                return True
-            return False
+            return handle_normal_key(key_name, self._on_mode_change)
         if self._state.mode == "insert":
-            if key_name == "Escape":
-                self._on_mode_change("normal")
-                return True
-            if key_name in {"BackSpace", "Delete"}:
-                return self._on_inline_delete(key_name)
-            return False
+            return handle_insert_key(key_name, self._on_mode_change, self._on_inline_delete)
         return False
