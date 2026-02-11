@@ -1,9 +1,6 @@
 """Application orchestrator coordinating UI, editor state, and image handling."""
 from __future__ import annotations
 
-from dataclasses import dataclass
-import base64
-import mimetypes
 import os
 import shlex
 import shutil
@@ -16,24 +13,15 @@ import gi
 
 gi.require_version("Gdk", "4.0")
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk  # type: ignore
+from gi.repository import Gdk, Gio, GLib, Gtk  # type: ignore
 
 from config import AppConfig
 from editor_mode_router import ModeRouter
-from editor_segments import ImageSegment, Segment, TextSegment
+from editor_segments import Segment
 from editor_state import EditorState
 from persistence_gtkv_html import build_html, parse_html
 from services_image_cache import cleanup_cache as cleanup_image_cache
-from services_image_cache import materialize_data_uri
-
-
-@dataclass
-class InlineImageNode:
-    """Model describing an inline image in the text flow."""
-
-    path: Path
-    status: str
-    widget: Gtk.Widget
+from ui_editor_view import EditorView
 
 
 class Orchestrator:
@@ -51,9 +39,8 @@ class Orchestrator:
         )
 
         self._root: Optional[Gtk.Box] = None
-        self._text_view: Optional[Gtk.TextView] = None
         self._status_label: Optional[Gtk.Label] = None
-        self._inline_images: dict[Gtk.TextChildAnchor, InlineImageNode] = {}
+        self._editor_view: Optional[EditorView] = None
 
     def start(self) -> None:
         """Initialize UI, connect signals, and load initial document."""
@@ -70,16 +57,9 @@ class Orchestrator:
 
         self._apply_transparent_theme()
 
-        scroller = Gtk.ScrolledWindow()
-        scroller.set_hexpand(True)
-        scroller.set_vexpand(True)
-        root.append(scroller)
-
-        text_view = cast(Gtk.TextView, Gtk.TextView())
-        text_view.set_wrap_mode(Gtk.WrapMode.NONE)
-        text_view.set_monospace(True)
-        self._text_view = text_view
-        scroller.set_child(text_view)
+        editor_view = EditorView(self._window)
+        self._editor_view = editor_view
+        root.append(editor_view.widget)
 
         status_label = cast(Gtk.Label, Gtk.Label(label=""))
         status_label.set_xalign(0.0)
@@ -87,11 +67,11 @@ class Orchestrator:
         root.append(status_label)
 
     def _connect_events(self) -> None:
-        if not self._text_view:
+        if not self._editor_view:
             return
         controller = Gtk.EventControllerKey()
         controller.connect("key-pressed", self._on_key_pressed)
-        self._text_view.add_controller(controller)
+        self._editor_view.add_key_controller(controller)
 
     def _on_key_pressed(
         self,
@@ -117,8 +97,8 @@ class Orchestrator:
 
     def _open_image_chooser(self) -> None:
         if self._begin_image_selector_o():
-            if self._text_view:
-                self._text_view.grab_focus()
+            if self._editor_view:
+                self._editor_view.grab_focus()
             return
         self._open_image_selector_gtk()
 
@@ -153,8 +133,8 @@ class Orchestrator:
             path = file.get_path()
             if path:
                 self.insert_image(Path(path))
-                if self._text_view:
-                    self._text_view.grab_focus()
+                if self._editor_view:
+                    self._editor_view.grab_focus()
 
         dialog.open(self._window, None, _on_opened)
 
@@ -254,8 +234,8 @@ class Orchestrator:
                     ext = path.suffix.lstrip(".").lower()
                     if ext in allowed_exts:
                         self.insert_image(path)
-                        if self._text_view:
-                            self._text_view.grab_focus()
+                        if self._editor_view:
+                            self._editor_view.grab_focus()
                         self._update_status()
                 return False
             if time.monotonic() - start_time > 300:
@@ -281,8 +261,8 @@ class Orchestrator:
                     return False
                 path = Path(first)
                 self.save_document(path)
-                if self._text_view:
-                    self._text_view.grab_focus()
+                if self._editor_view:
+                    self._editor_view.grab_focus()
                 return False
             if time.monotonic() - start_time > 300:
                 self._update_status()
@@ -308,22 +288,21 @@ class Orchestrator:
 
     def load_document(self, path: Path) -> None:
         self._state.file_path = path
-        if not self._text_view:
+        if not self._editor_view:
             return
         if path.name.endswith(".gtkv.html"):
             self._load_gtkv_html(path)
             self.cleanup_cache()
         else:
-            buffer = self._text_view.get_buffer()
             try:
                 contents = path.read_text(encoding="utf-8")
             except FileNotFoundError:
                 contents = ""
-            buffer.set_text(contents)
+            self._editor_view.set_text(contents)
         self._update_status()
 
     def save_document(self, path: Optional[Path] = None) -> None:
-        if not self._text_view:
+        if not self._editor_view:
             return
         target = path or self._state.file_path
         if not target:
@@ -339,126 +318,14 @@ class Orchestrator:
 
     def insert_image(self, path: Path) -> None:
         """Insert an inline image node at the caret position."""
-        if not self._text_view:
+        if not self._editor_view:
             return
-        buffer = self._text_view.get_buffer()
-        insert_iter = buffer.get_iter_at_mark(buffer.get_insert())
-        anchor = self._insert_inline_image_at_iter(path, insert_iter)
-        after_iter = insert_iter.copy()
-        if after_iter.forward_char():
-            buffer.place_cursor(after_iter)
-        self._text_view.grab_focus()
-        if anchor is not None:
-            GLib.idle_add(self._load_inline_image, anchor, path)
-
-    def _build_inline_image_widget(self, path: Path) -> Gtk.Widget:
-        stack = Gtk.Stack()
-        stack.set_transition_type(Gtk.StackTransitionType.NONE)
-        stack.set_halign(Gtk.Align.START)
-        stack.set_valign(Gtk.Align.BASELINE)
-
-        loading_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        loading_box.set_halign(Gtk.Align.START)
-        loading_box.set_valign(Gtk.Align.CENTER)
-        spinner = Gtk.Spinner()
-        spinner.start()
-        loading_label = Gtk.Label(label=f"Loading {path.name}…")
-        loading_label.set_xalign(0.0)
-        loading_box.append(spinner)
-        loading_box.append(loading_label)
-
-        error_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        error_box.set_halign(Gtk.Align.START)
-        error_box.set_valign(Gtk.Align.CENTER)
-        error_icon = Gtk.Image.new_from_icon_name("dialog-error")
-        error_icon.set_pixel_size(16)
-        error_label = Gtk.Label(label=f"Failed to load {path.name}")
-        error_label.set_xalign(0.0)
-        error_box.append(error_icon)
-        error_box.append(error_label)
-
-        image_widget = Gtk.Picture()
-        image_widget.set_can_shrink(False)
-        image_widget.set_content_fit(Gtk.ContentFit.CONTAIN)
-        image_widget.set_halign(Gtk.Align.START)
-        image_widget.set_valign(Gtk.Align.BASELINE)
-        image_widget.add_css_class("inline-image")
-
-        stack.add_named(loading_box, "loading")
-        stack.add_named(image_widget, "ready")
-        stack.add_named(error_box, "error")
-        stack.set_visible_child_name("loading")
-        return stack
-
-    def _insert_inline_image_at_iter(
-        self, path: Path, insert_iter: Gtk.TextIter
-    ) -> Gtk.TextChildAnchor | None:
-        if not self._text_view:
-            return None
-        buffer = self._text_view.get_buffer()
-        anchor = buffer.create_child_anchor(insert_iter)
-        widget = self._build_inline_image_widget(path)
-        self._text_view.add_child_at_anchor(widget, anchor)
-        self._inline_images[anchor] = InlineImageNode(path=path, status="loading", widget=widget)
-        return anchor
-
-    def _load_inline_image(self, anchor: Gtk.TextChildAnchor, path: Path) -> bool:
-        node = self._inline_images.get(anchor)
-        if not node:
-            return False
-        stack = node.widget
-        if not isinstance(stack, Gtk.Stack):
-            return False
-        try:
-            pixbuf = self._load_pixbuf(path)
-        except (GLib.Error, OSError):
-            node.status = "error"
-            stack.set_visible_child_name("error")
-            return False
-        image_widget = stack.get_child_by_name("ready")
-        if isinstance(image_widget, Gtk.Picture):
-            texture = Gdk.Texture.new_for_pixbuf(pixbuf)
-            image_widget.set_paintable(texture)
-            image_widget.set_size_request(pixbuf.get_width(), pixbuf.get_height())
-        node.status = "ready"
-        stack.set_visible_child_name("ready")
-        return False
-
-    def _load_pixbuf(self, path: Path) -> GdkPixbuf.Pixbuf:
-        window_width = self._window.get_width() if self._window else 0
-        if window_width and window_width > 200:
-            max_width = max(320, min(1200, window_width - 120))
-        else:
-            max_width = 900
-        pixbuf = GdkPixbuf.Pixbuf.new_from_file(path.as_posix())
-        if pixbuf.get_width() <= max_width:
-            return pixbuf
-        ratio = max_width / pixbuf.get_width()
-        new_height = max(1, int(pixbuf.get_height() * ratio))
-        return pixbuf.scale_simple(max_width, new_height, GdkPixbuf.InterpType.BILINEAR)
+        self._editor_view.insert_image(path)
 
     def _handle_inline_image_delete(self, key_name: str) -> bool:
-        if not self._text_view:
+        if not self._editor_view:
             return False
-        buffer = self._text_view.get_buffer()
-        cursor_iter = buffer.get_iter_at_mark(buffer.get_insert())
-        target_iter = cursor_iter.copy()
-        if key_name == "BackSpace":
-            if not target_iter.backward_char():
-                return False
-        anchor = target_iter.get_child_anchor()
-        if not anchor:
-            return False
-        self._remove_inline_anchor(anchor)
-        end_iter = target_iter.copy()
-        if end_iter.forward_char():
-            buffer.delete(target_iter, end_iter)
-        return True
-
-    def _remove_inline_anchor(self, anchor: Gtk.TextChildAnchor) -> None:
-        node = self._inline_images.pop(anchor, None)
-        if node and node.widget:
-            node.widget.destroy()
+        return self._editor_view.handle_inline_image_delete(key_name)
 
     def _apply_transparent_theme(self) -> None:
         if hasattr(self._window, "set_app_paintable"):
@@ -560,78 +427,19 @@ class Orchestrator:
         return build_html(segments)
 
     def _extract_document_segments(self) -> list[Segment]:
-        if not self._text_view:
+        if not self._editor_view:
             return []
-        buffer = self._text_view.get_buffer()
-        anchors = list(self._inline_images.keys())
-        anchor_positions: list[tuple[int, Gtk.TextChildAnchor]] = []
-        for anchor in anchors:
-            try:
-                iter_at = buffer.get_iter_at_child_anchor(anchor)
-            except Exception:
-                continue
-            anchor_positions.append((iter_at.get_offset(), anchor))
-        anchor_positions.sort(key=lambda item: item[0])
-
-        start_iter = buffer.get_start_iter()
-        segments: list[Segment] = []
-        current_iter = start_iter.copy()
-
-        for offset, anchor in anchor_positions:
-            anchor_iter = buffer.get_iter_at_offset(offset)
-            if current_iter.get_offset() < anchor_iter.get_offset():
-                text = buffer.get_text(current_iter, anchor_iter, True)
-                if text:
-                    segments.append(TextSegment(text))
-            node = self._inline_images.get(anchor)
-            if node:
-                data_uri = self._image_to_data_uri(node.path)
-                if data_uri:
-                    segments.append(ImageSegment(data_uri, node.path.name))
-            current_iter = anchor_iter.copy()
-
-        end_iter = buffer.get_end_iter()
-        if current_iter.get_offset() < end_iter.get_offset():
-            trailing = buffer.get_text(current_iter, end_iter, True)
-            if trailing:
-                segments.append(TextSegment(trailing))
-
-        if not segments:
-            segments.append(TextSegment(""))
-        return segments
-
-    def _image_to_data_uri(self, path: Path) -> str | None:
-        try:
-            data = path.read_bytes()
-        except OSError:
-            return None
-        mime_type, _ = mimetypes.guess_type(path.as_posix())
-        if not mime_type:
-            mime_type = "image/png"
-        encoded = base64.b64encode(data).decode("ascii")
-        return f"data:{mime_type};base64,{encoded}"
+        return self._editor_view.extract_segments()
 
     def _load_gtkv_html(self, path: Path) -> None:
-        if not self._text_view:
+        if not self._editor_view:
             return
-        buffer = self._text_view.get_buffer()
-        buffer.set_text("")
         try:
             contents = path.read_text(encoding="utf-8")
         except FileNotFoundError:
             contents = ""
         segments = parse_html(contents)
-        for segment in segments:
-            if isinstance(segment, TextSegment):
-                buffer.insert(buffer.get_end_iter(), segment.text)
-            elif isinstance(segment, ImageSegment):
-                image_path = materialize_data_uri(segment.data_uri)
-                if image_path:
-                    anchor = self._insert_inline_image_at_iter(
-                        image_path, buffer.get_end_iter()
-                    )
-                    if anchor is not None:
-                        GLib.idle_add(self._load_inline_image, anchor, image_path)
+        self._editor_view.load_segments(segments)
 
     def cleanup_cache(self) -> None:
         cleanup_image_cache(
