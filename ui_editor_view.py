@@ -54,6 +54,7 @@ class EditorView:
             "cursor-block",
             background="white",
             foreground="black",
+            background_full_height=True,
         )
 
         overlay = Gtk.Overlay()
@@ -271,6 +272,8 @@ class EditorView:
         self._cursor_layer.queue_draw()
 
     def _draw_cursor(self, _area: Gtk.DrawingArea, ctx, _width: int, _height: int) -> None:
+        if self._cursor_tag_range is not None:
+            return
         rect = self._compute_cursor_rect()
         if rect is None:
             return
@@ -283,7 +286,7 @@ class EditorView:
         buffer = self._text_view.get_buffer()
         insert_iter = buffer.get_iter_at_mark(buffer.get_insert())
         location = self._text_view.get_iter_location(insert_iter)
-        if location.width == 0 and location.height == 0:
+        if location.height == 0:
             return None
         x, y = self._text_view.buffer_to_window_coords(
             Gtk.TextWindowType.TEXT,
