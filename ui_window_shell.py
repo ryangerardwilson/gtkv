@@ -50,6 +50,13 @@ class WindowShell:
         if hasattr(self._window, "set_app_paintable"):
             self._window.set_app_paintable(True)
 
+        settings = Gtk.Settings.get_default()
+        if settings is not None:
+            try:
+                settings.set_property("gtk-cursor-aspect-ratio", 1.0)
+            except (TypeError, ValueError):
+                pass
+
         css = b"""
         window,
         .background,
