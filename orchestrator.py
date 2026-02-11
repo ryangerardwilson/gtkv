@@ -60,6 +60,9 @@ class Orchestrator:
         controller.connect("key-pressed", self._on_key_pressed)
         self._shell.editor_view.add_key_controller(controller)
         self._shell.command_pane.connect_activate(self._on_command_activate)
+        command_controller = Gtk.EventControllerKey()
+        command_controller.connect("key-pressed", self._on_command_key_pressed)
+        self._shell.command_pane.add_key_controller(command_controller)
 
     def _on_key_pressed(
         self,
@@ -75,10 +78,10 @@ class Orchestrator:
         if self._is_ctrl_s(state, key_name):
             self._handle_save_request()
             return True
-        if self._state.mode == "normal" and key_name in {":", "colon"}:
+        if self._state.mode == "normal" and self._is_colon_command(keyval, key_name, state):
             self._show_command_pane(":")
             return True
-        if self._state.mode == "normal" and key_name in {"/", "slash"}:
+        if self._state.mode == "normal" and self._is_slash_command(keyval, key_name, state):
             self._show_command_pane("/")
             return True
         return self._mode_router.handle_key(key_name)
@@ -88,6 +91,24 @@ class Orchestrator:
 
     def _is_ctrl_s(self, state: Gdk.ModifierType, key_name: str) -> bool:
         return key_name.lower() == "s" and bool(state & Gdk.ModifierType.CONTROL_MASK)
+
+    def _is_colon_command(self, keyval: int, key_name: str, state: Gdk.ModifierType) -> bool:
+        if key_name in {":", "colon"}:
+            return True
+        if keyval == Gdk.KEY_colon:
+            return True
+        if keyval == Gdk.KEY_semicolon and bool(state & Gdk.ModifierType.SHIFT_MASK):
+            return True
+        return False
+
+    def _is_slash_command(self, keyval: int, key_name: str, state: Gdk.ModifierType) -> bool:
+        if key_name in {"/", "slash"}:
+            return True
+        if keyval == Gdk.KEY_slash:
+            return True
+        if keyval == Gdk.KEY_question and bool(state & Gdk.ModifierType.SHIFT_MASK):
+            return True
+        return False
 
     def _open_image_chooser(self) -> None:
         if self._begin_image_selector_o():
@@ -284,6 +305,7 @@ class Orchestrator:
         if not self._shell:
             return
         self._shell.command_pane.set_visible(False)
+        self._shell.command_pane.clear()
         self._shell.editor_view.grab_focus()
         self._command_prefix = None
 
@@ -301,6 +323,19 @@ class Orchestrator:
         if not handled:
             self._set_status_hint("UNKNOWN COMMAND")
         self._hide_command_pane()
+
+    def _on_command_key_pressed(
+        self,
+        controller: Gtk.EventControllerKey,
+        keyval: int,
+        keycode: int,
+        state: Gdk.ModifierType,
+    ) -> bool:
+        key_name = Gdk.keyval_name(keyval) or ""
+        if key_name == "Escape":
+            self._hide_command_pane()
+            return True
+        return False
 
     def _handle_ex_command(self, text: str) -> bool:
         command, _args = parse_ex_command(text)

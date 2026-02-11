@@ -60,3 +60,6 @@ class CommandPane:
 
     def connect_changed(self, handler) -> None:
         self._entry.connect("changed", handler)
+
+    def add_key_controller(self, controller: Gtk.EventControllerKey) -> None:
+        self._entry.add_controller(controller)
