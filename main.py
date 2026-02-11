@@ -2,11 +2,13 @@
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 import subprocess
 import sys
 from typing import Sequence
 
 from config import AppConfig
+from logging_debug import setup_debug_logging
 from _version import __version__
 
 INSTALL_SH_URL = "https://raw.githubusercontent.com/ryangerardwilson/gtkv/main/install.sh"
@@ -16,6 +18,7 @@ from orchestrator import Orchestrator
 def parse_args(argv: Sequence[str]) -> AppConfig:
     parser = argparse.ArgumentParser(description="Vim-like GTK editor with image support")
     parser.add_argument("-c", dest="cleanup_cache", action="store_true", help="Clean cache and exit")
+    parser.add_argument("-d", "--debug", dest="debug", action="store_true", help="Enable debug logging")
     parser.add_argument("-v", "--version", action="store_true", help="Show installed version")
     parser.add_argument("-u", "--upgrade", action="store_true", help="Upgrade to latest release")
     parser.add_argument("file", nargs="?", help="Optional file to open on startup")
@@ -25,6 +28,7 @@ def parse_args(argv: Sequence[str]) -> AppConfig:
         cleanup_cache=args.cleanup_cache,
         show_version=args.version,
         upgrade=args.upgrade,
+        debug=args.debug,
     )
 
 
@@ -92,6 +96,7 @@ def build_application(config: AppConfig):
 def main(argv: Sequence[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     config = parse_args(args)
+    setup_debug_logging(config.debug, Path("debug.log"))
     if config.show_version:
         print(__version__)
         return 0

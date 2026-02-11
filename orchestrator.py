@@ -24,6 +24,7 @@ from editor_segments import Segment
 from editor_state import EditorState
 from persistence_gtkv_html import build_html, parse_html
 from services_image_cache import cleanup_cache as cleanup_image_cache
+from logging_debug import log_action
 from ui_status_controller import StatusController
 from ui_window_shell import WindowShell
 
@@ -126,6 +127,7 @@ class Orchestrator:
         return False
 
     def _open_image_chooser(self) -> None:
+        log_action("open_image_chooser")
         if self._begin_image_selector_o():
             if self._shell:
                 self._shell.editor_view.grab_focus()
@@ -162,6 +164,7 @@ class Orchestrator:
                 return
             path = file.get_path()
             if path:
+                log_action(f"insert_image:{path}")
                 self.insert_image(Path(path))
                 if self._shell:
                     self._shell.editor_view.grab_focus()
@@ -263,6 +266,7 @@ class Orchestrator:
                 if path.exists() and path.is_file():
                     ext = path.suffix.lstrip(".").lower()
                     if ext in allowed_exts:
+                        log_action(f"insert_image:{path}")
                         self.insert_image(path)
                         if self._shell:
                             self._shell.editor_view.grab_focus()
@@ -292,6 +296,7 @@ class Orchestrator:
                 if not first:
                     return False
                 path = Path(first)
+                log_action(f"save_document:{path}")
                 self.save_document(path)
                 if self._shell:
                     self._shell.editor_view.grab_focus()
@@ -305,6 +310,7 @@ class Orchestrator:
         GLib.timeout_add(200, _check)
 
     def set_mode(self, mode: str) -> None:
+        log_action(f"set_mode:{mode}")
         self._state.set_mode(mode)
         if not self._shell:
             return
@@ -314,6 +320,7 @@ class Orchestrator:
             self._shell.editor_view.clear_selection()
 
     def _handle_ex_command(self, text: str) -> bool:
+        log_action(f"ex_command:{text}")
         command, _args = parse_ex_command(text)
         if not command:
             return True
@@ -330,6 +337,7 @@ class Orchestrator:
         return False
 
     def _handle_search_command(self, text: str) -> bool:
+        log_action(f"search_command:{text}")
         if not self._shell:
             return False
         term = text.strip()
@@ -341,6 +349,7 @@ class Orchestrator:
         return True
 
     def _handle_search_preview(self, text: str) -> bool:
+        log_action(f"search_preview:{text}")
         if not self._shell:
             return False
         term = text.strip()
@@ -359,6 +368,7 @@ class Orchestrator:
         self._status_controller.set_hint(message)
 
     def load_document(self, path: Path) -> None:
+        log_action(f"load_document:{path}")
         self._state.set_file_path(path)
         if not self._shell:
             return
@@ -378,6 +388,7 @@ class Orchestrator:
         target = path or self._state.file_path
         if not target:
             return
+        log_action(f"save_document:{target}")
         self._document.set_segments(self._shell.editor_view.extract_segments())
         target = self._ensure_gtkv_suffix(target, self._config.save_extension)
         html_text = self._build_gtkv_html()
@@ -391,11 +402,13 @@ class Orchestrator:
         """Insert an inline image node at the caret position."""
         if not self._shell:
             return
+        log_action(f"insert_image:{path}")
         self._shell.editor_view.insert_image(path)
 
     def _handle_inline_image_delete(self, key_name: str) -> bool:
         if not self._shell:
             return False
+        log_action(f"inline_image_delete:{key_name}")
         return self._shell.editor_view.handle_inline_image_delete(key_name)
 
     def _handle_save_request(self) -> None:

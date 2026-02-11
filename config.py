@@ -16,3 +16,4 @@ class AppConfig:
     cleanup_cache: bool = False
     show_version: bool = False
     upgrade: bool = False
+    debug: bool = False

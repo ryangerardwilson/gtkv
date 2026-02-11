@@ -39,7 +39,6 @@ class DocumentModel:
     def set_selection(self, start: int, end: int) -> None:
         self._selection_start = start
         self._selection_end = end
-        self._notify()
 
     def clear_selection(self) -> None:
         self._selection_start = None
