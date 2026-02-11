@@ -1,4 +1,5 @@
 """Image cache helpers for inline image data URIs."""
+
 from __future__ import annotations
 
 import base64

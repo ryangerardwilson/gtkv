@@ -1,4 +1,5 @@
 """Command-line parser for Vim-style ex commands."""
+
 from __future__ import annotations
 
 

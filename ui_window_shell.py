@@ -1,4 +1,5 @@
 """GTK window shell layout and status bar."""
+
 from __future__ import annotations
 
 import gi

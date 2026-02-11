@@ -1,4 +1,5 @@
 """Document model as source of truth for text + images."""
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -35,7 +36,9 @@ class DocumentModel:
     def get_selection(self) -> tuple[int | None, int | None]:
         return self._selection_start, self._selection_end
 
-    def get_selection_span(self) -> tuple[tuple[int, int] | None, tuple[int, int] | None]:
+    def get_selection_span(
+        self,
+    ) -> tuple[tuple[int, int] | None, tuple[int, int] | None]:
         return self._selection_anchor, self._selection_active
 
     def set_text(self, text: str) -> None:

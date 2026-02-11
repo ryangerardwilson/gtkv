@@ -1,4 +1,5 @@
 """UI status controller for mode/file/status hints."""
+
 from __future__ import annotations
 
 from pathlib import Path

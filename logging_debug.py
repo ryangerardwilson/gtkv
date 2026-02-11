@@ -1,4 +1,5 @@
 """Debug logging setup and crash hooks."""
+
 from __future__ import annotations
 
 from collections import deque
@@ -64,7 +65,10 @@ def _install_exception_hooks(logger: logging.Logger) -> None:
         sys.__excepthook__(exc_type, exc, tb)
 
     def _handle_thread_exception(args):
-        logger.error("Unhandled thread exception", exc_info=(args.exc_type, args.exc_value, args.exc_traceback))
+        logger.error(
+            "Unhandled thread exception",
+            exc_info=(args.exc_type, args.exc_value, args.exc_traceback),
+        )
         flush_actions(logger)
         _write_traceback_file(args.exc_type, args.exc_value, args.exc_traceback)
 

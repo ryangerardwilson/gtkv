@@ -1,4 +1,5 @@
 """Segment model for serialized document content."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

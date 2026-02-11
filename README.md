@@ -1,8 +1,9 @@
 # gtkv
 
 Vim is one of the best-designed editing experiences in software, but its
-brilliance is boxed in by the terminal. `gtkv` breaks that ceiling: it keeps the
-Vim-first workflow while unlocking graphical capabilities like inline images.
+brilliance is boxed in by the terminal. `gtkv` breaks that ceiling: it keeps
+the Vim-first workflow while unlocking graphical capabilities like inline
+images.
 
 `gtkv` is a GTK4-first Vim-inspired editor with inline image support. It saves
 documents as `*.gtkv.html` with embedded base64 images, and keeps the workflow
@@ -57,6 +58,15 @@ python main.py
 - `gtkv file.gtkv.html` — open an existing document.
 - `Ctrl+I` — insert an image.
 - `Ctrl+S` — save (creates `*.gtkv.html`).
+- `i` — insert mode.
+- `Esc` — normal mode.
+- `h/j/k/l` — move in normal/visual mode.
+- `v` — visual mode.
+- `a/A` — append after cursor / end of line.
+- `o/O` — open new line below / above.
+- `:` — command prompt (`:w`, `:q`, `:wq`).
+- `/` — search forward.
+- `-d` — enable debug logging (`debug.log`).
 - `-v` — print installed version.
 - `-u` — upgrade to the latest release.
 - `-h` — show CLI help.
@@ -67,6 +77,13 @@ The installer drops a completion script into
 `${XDG_CONFIG_HOME:-~/.config}/bash_completion.d/gtkv` and adds a loader to
 `~/.bashrc` if needed. After restarting your shell, `gtkv<Tab>` will complete
 only `*.gtkv.html` files.
+
+---
+
+## Notes
+
+- Lines are hard-limited to 88 columns; images are scaled to fit within that width.
+- Font family/size and tab width are configured in `config.py`.
 
 ---
 

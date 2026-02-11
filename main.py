@@ -1,4 +1,5 @@
 """GTK application entry point."""
+
 from __future__ import annotations
 
 import argparse
@@ -11,16 +12,28 @@ from config import AppConfig
 from logging_debug import setup_debug_logging
 from _version import __version__
 
-INSTALL_SH_URL = "https://raw.githubusercontent.com/ryangerardwilson/gtkv/main/install.sh"
+INSTALL_SH_URL = (
+    "https://raw.githubusercontent.com/ryangerardwilson/gtkv/main/install.sh"
+)
 from orchestrator import Orchestrator
 
 
 def parse_args(argv: Sequence[str]) -> tuple[AppConfig, list[str]]:
-    parser = argparse.ArgumentParser(description="Vim-like GTK editor with image support")
-    parser.add_argument("-c", dest="cleanup_cache", action="store_true", help="Clean cache and exit")
-    parser.add_argument("-d", "--debug", dest="debug", action="store_true", help="Enable debug logging")
-    parser.add_argument("-v", "--version", action="store_true", help="Show installed version")
-    parser.add_argument("-u", "--upgrade", action="store_true", help="Upgrade to latest release")
+    parser = argparse.ArgumentParser(
+        description="Vim-like GTK editor with image support"
+    )
+    parser.add_argument(
+        "-c", dest="cleanup_cache", action="store_true", help="Clean cache and exit"
+    )
+    parser.add_argument(
+        "-d", "--debug", dest="debug", action="store_true", help="Enable debug logging"
+    )
+    parser.add_argument(
+        "-v", "--version", action="store_true", help="Show installed version"
+    )
+    parser.add_argument(
+        "-u", "--upgrade", action="store_true", help="Upgrade to latest release"
+    )
     parser.add_argument("file", nargs="?", help="Optional file to open on startup")
     if hasattr(parser, "parse_known_intermixed_args"):
         args, gtk_args = parser.parse_known_intermixed_args(argv)
@@ -84,7 +97,9 @@ def build_application(config: AppConfig):
         window.set_title("Vim GTK")
         window.set_default_size(1024, 768)
 
-        orchestrator = Orchestrator(application=application, window=window, config=config)
+        orchestrator = Orchestrator(
+            application=application, window=window, config=config
+        )
         if getattr(config, "cleanup_cache", False):
             orchestrator.cleanup_cache()
             application.quit()

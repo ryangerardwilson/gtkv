@@ -1,4 +1,5 @@
 """GTK editor view with inline image rendering."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -227,9 +228,13 @@ class EditorView:
                 image_path = materialize_data_uri(segment.data_uri)
                 if image_path:
                     end_iter = buffer.get_end_iter()
-                    end_iter = self._ensure_image_fits_line(buffer, end_iter, image_path)
+                    end_iter = self._ensure_image_fits_line(
+                        buffer, end_iter, image_path
+                    )
                     cols = self._estimate_image_cols(image_path)
-                    anchor = self._insert_inline_image_at_iter(image_path, end_iter, cols)
+                    anchor = self._insert_inline_image_at_iter(
+                        image_path, end_iter, cols
+                    )
                     if anchor is not None:
                         GLib.idle_add(self._load_inline_image, anchor, image_path)
         self._suppress_document_sync = False
@@ -332,7 +337,9 @@ class EditorView:
             anchor_iter = buffer.get_iter_at_offset(anchor_offset)
             buffer.select_range(anchor_iter, new_iter)
             if self._document:
-                self._document.set_selection(anchor_iter.get_offset(), new_iter.get_offset())
+                self._document.set_selection(
+                    anchor_iter.get_offset(), new_iter.get_offset()
+                )
         else:
             buffer.select_range(new_iter, new_iter)
             if self._document:
@@ -347,7 +354,9 @@ class EditorView:
         self._queue_cursor_draw()
         return True
 
-    def _on_buffer_mark_set(self, _buffer: Gtk.TextBuffer, _iter: Gtk.TextIter, _mark: Gtk.TextMark) -> None:
+    def _on_buffer_mark_set(
+        self, _buffer: Gtk.TextBuffer, _iter: Gtk.TextIter, _mark: Gtk.TextMark
+    ) -> None:
         if self._suppress_mark_handler:
             return
         if not self._text_view.get_editable():
@@ -376,7 +385,9 @@ class EditorView:
         self._update_cursor_block_tag()
         self._cursor_layer.queue_draw()
 
-    def _draw_cursor(self, _area: Gtk.DrawingArea, ctx, _width: int, _height: int) -> None:
+    def _draw_cursor(
+        self, _area: Gtk.DrawingArea, ctx, _width: int, _height: int
+    ) -> None:
         rect = self._compute_cursor_rect()
         if rect is None:
             return
@@ -556,7 +567,6 @@ class EditorView:
         height = (metrics.get_ascent() + metrics.get_descent()) / Pango.SCALE
         return max(1, int(height))
 
-
     @staticmethod
     def _get_iter_at_line(buffer: Gtk.TextBuffer, line: int) -> Gtk.TextIter:
         iter_at = buffer.get_iter_at_line(line)
@@ -584,7 +594,9 @@ class EditorView:
             line_text_len = insert_iter.get_chars_in_line()
             line_image_cols = self._get_image_cols_for_line(line)
             line_total_cols = line_text_len + line_image_cols
-            remaining_after = line_total_cols - self._get_visual_col_at_iter(insert_iter)
+            remaining_after = line_total_cols - self._get_visual_col_at_iter(
+                insert_iter
+            )
             col = self._get_visual_col_at_iter(insert_iter)
             out_chars: list[str] = []
             for ch in text:
@@ -593,7 +605,9 @@ class EditorView:
                     col = 0
                     remaining_after = 0
                     continue
-                if col >= self.MAX_COLS or (remaining_after > 0 and col + remaining_after >= self.MAX_COLS):
+                if col >= self.MAX_COLS or (
+                    remaining_after > 0 and col + remaining_after >= self.MAX_COLS
+                ):
                     out_chars.append("\n")
                     col = 0
                     remaining_after = 0

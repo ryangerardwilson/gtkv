@@ -1,4 +1,5 @@
 """HTML persistence for GTKV documents."""
+
 from __future__ import annotations
 
 import html
@@ -12,16 +13,16 @@ def build_html(segments: list[Segment]) -> str:
     for segment in segments:
         if isinstance(segment, TextSegment):
             escaped = html.escape(segment.text)
-            body_parts.append(f"<pre class=\"text\">{escaped}</pre>")
+            body_parts.append(f'<pre class="text">{escaped}</pre>')
         elif isinstance(segment, ImageSegment):
             escaped_alt = html.escape(segment.alt)
-            body_parts.append(f"<img src=\"{segment.data_uri}\" alt=\"{escaped_alt}\" />")
+            body_parts.append(f'<img src="{segment.data_uri}" alt="{escaped_alt}" />')
     body = "\n".join(body_parts)
     return (
         "<!DOCTYPE html>\n"
         "<html>\n"
         "<head>\n"
-        "  <meta charset=\"utf-8\" />\n"
+        '  <meta charset="utf-8" />\n'
         "  <title>GTKV Document</title>\n"
         "  <style>body{font-family:monospace;white-space:normal;}"
         "pre.text{font-family:monospace;white-space:pre-wrap;}</style>\n"

@@ -1,4 +1,5 @@
 """Application orchestrator coordinating UI, editor state, and image handling."""
+
 from __future__ import annotations
 
 import os
@@ -32,7 +33,12 @@ from ui_window_shell import WindowShell
 class Orchestrator:
     """Coordinates GTK widgets, editor state, and command handling."""
 
-    def __init__(self, application: Gtk.Application, window: Gtk.ApplicationWindow, config: AppConfig) -> None:
+    def __init__(
+        self,
+        application: Gtk.Application,
+        window: Gtk.ApplicationWindow,
+        config: AppConfig,
+    ) -> None:
         self._application = application
         self._window = window
         self._config = config
@@ -96,11 +102,15 @@ class Orchestrator:
         if self._is_ctrl_s(state, key_name):
             self._handle_save_request()
             return True
-        if self._state.mode == "normal" and self._is_colon_command(keyval, key_name, state):
+        if self._state.mode == "normal" and self._is_colon_command(
+            keyval, key_name, state
+        ):
             if self._command_controller:
                 self._command_controller.show(":")
             return True
-        if self._state.mode == "normal" and self._is_slash_command(keyval, key_name, state):
+        if self._state.mode == "normal" and self._is_slash_command(
+            keyval, key_name, state
+        ):
             if self._command_controller:
                 self._command_controller.show("/")
             return True
@@ -112,7 +122,9 @@ class Orchestrator:
     def _is_ctrl_s(self, state: Gdk.ModifierType, key_name: str) -> bool:
         return key_name.lower() == "s" and bool(state & Gdk.ModifierType.CONTROL_MASK)
 
-    def _is_colon_command(self, keyval: int, key_name: str, state: Gdk.ModifierType) -> bool:
+    def _is_colon_command(
+        self, keyval: int, key_name: str, state: Gdk.ModifierType
+    ) -> bool:
         if key_name in {":", "colon"}:
             return True
         if keyval == Gdk.KEY_colon:
@@ -121,7 +133,9 @@ class Orchestrator:
             return True
         return False
 
-    def _is_slash_command(self, keyval: int, key_name: str, state: Gdk.ModifierType) -> bool:
+    def _is_slash_command(
+        self, keyval: int, key_name: str, state: Gdk.ModifierType
+    ) -> bool:
         if key_name in {"/", "slash"}:
             return True
         if keyval == Gdk.KEY_slash:
@@ -228,7 +242,9 @@ class Orchestrator:
                 continue
             launch_cmd = list(cmd)
             if any("{cmd}" in token for token in launch_cmd):
-                launch_cmd = [token.replace("{cmd}", cmd_joined) for token in launch_cmd]
+                launch_cmd = [
+                    token.replace("{cmd}", cmd_joined) for token in launch_cmd
+                ]
             else:
                 launch_cmd.extend(["-e"] + command)
             try:

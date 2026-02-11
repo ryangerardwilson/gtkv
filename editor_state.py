@@ -1,4 +1,5 @@
 """Editor state for Vim-like mode handling."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -13,7 +14,9 @@ class EditorState:
 
     mode: str = "normal"
     file_path: Optional[Path] = None
-    _listeners: list[Callable[["EditorState"], None]] = field(default_factory=list, init=False, repr=False)
+    _listeners: list[Callable[["EditorState"], None]] = field(
+        default_factory=list, init=False, repr=False
+    )
 
     def add_listener(self, listener: Callable[["EditorState"], None]) -> None:
         self._listeners.append(listener)

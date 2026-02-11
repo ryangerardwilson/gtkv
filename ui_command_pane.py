@@ -1,4 +1,5 @@
 """Command pane for Vim-style input."""
+
 from __future__ import annotations
 
 import gi

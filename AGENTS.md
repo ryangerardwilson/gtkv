@@ -1,6 +1,7 @@
 # AGENTS
 
-This file describes the single responsibility of each component, the goals and non-goals of the project, and why the current architecture exists.
+This file describes the single responsibility of each component, the goals and
+non-goals of the project, and why the current architecture exists.
 
 ## Goals
 - Preserve a Vim-first workflow in a GTK4 UI.
@@ -16,7 +17,14 @@ This file describes the single responsibility of each component, the goals and n
 - Rich HTML editing beyond the GTKV persistence format.
 
 ## Why the architecture exists
-The app started as a proof of concept with most logic in `orchestrator.py`. As features expanded (inline images, HTML persistence, modes, command pane), the architecture was split into focused modules. This keeps the core orchestration thin and makes it possible to scale rendering, persistence, and command handling independently without reworking the whole app.
+The app started as a proof of concept with most logic in `orchestrator.py`. As
+features expanded (inline images, HTML persistence, modes, command pane), the
+architecture was split into focused modules. This keeps the core orchestration
+thin and makes it possible to scale rendering, persistence, and command
+handling independently without reworking the whole app.
+
+Recent changes continue that split by pushing cursor state into the editor
+model and keeping rendering concerns in the view layer.
 
 ## Preferred project layout (flat)
 - Keep the repo flat at the root; avoid deep package trees for core modules.
@@ -27,12 +35,14 @@ The app started as a proof of concept with most logic in `orchestrator.py`. As f
   - `services_*` for caches, I/O helpers
   - `completions_*` for shell completion scripts
 
-This layout makes browsing faster, keeps imports simple, and encourages focused modules.
+This layout makes browsing faster, keeps imports simple, and encourages focused
+modules.
 
 ## Release + packaging workflow
 
 ### `.github/`
-Holds GitHub Actions workflows for tagging and release packaging. The release workflow builds the bundle and publishes artifacts to GitHub Releases.
+Holds GitHub Actions workflows for tagging and release packaging. The release
+workflow builds the bundle and publishes artifacts to GitHub Releases.
 
 ### `install.sh`
 Installer script that:
@@ -42,18 +52,22 @@ Installer script that:
 - installs bash completion from `completions_gtkv.bash`
 
 ### `_version.py`
-Single source of installed version for the CLI (`gtkv --version`). Updated during release packaging so the binary bundle reports the correct version.
+Single source of installed version for the CLI (`gtkv --version`). Updated
+during release packaging so the binary bundle reports the correct version.
 
 ## Components and single responsibility
 
 ### `orchestrator.py`
-Top-level coordinator. Wires together UI, editor state, command controller, and persistence. Contains no rendering logic beyond orchestration and routing.
+Top-level coordinator. Wires together UI, editor state, command controller, and
+persistence. Contains no rendering logic beyond orchestration and routing.
 
 ### `ui_window_shell.py`
-Owns the window layout, status bar, and command pane placement. Applies UI-level CSS and window concerns.
+Owns the window layout, status bar, and command pane placement. Applies UI-
+level CSS and window concerns.
 
 ### `ui_editor_view.py`
-Owns GTK text rendering, inline image widgets, cursor/selection movement, and UI projection of document segments.
+Owns GTK text rendering, inline image widgets, cursor/selection rendering, and
+UI projection of document segments.
 
 ### `ui_command_pane.py`
 Owns the bottom command UI, input widget, prefix display, and hint text.
@@ -65,7 +79,8 @@ Keeps the status bar in sync with editor state and temporary hints.
 Holds editor mode and file path state, and notifies listeners on changes.
 
 ### `editor_document.py`
-Source of truth for document content and selection state. Emits updates to views.
+Source of truth for document content, cursor/selection state, and model-level
+navigation. Emits updates to views.
 
 ### `editor_mode_router.py`
 Routes key presses to the correct mode handler based on current state.

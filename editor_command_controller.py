@@ -1,4 +1,5 @@
 """Command pane controller for Vim-style commands."""
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -105,7 +106,9 @@ class CommandController:
             return False
         if self._history_index is None:
             self._history_index = len(self._history)
-        self._history_index = max(0, min(len(self._history) - 1, self._history_index + delta))
+        self._history_index = max(
+            0, min(len(self._history) - 1, self._history_index + delta)
+        )
         entry = self._history[self._history_index]
         if entry.startswith(":") or entry.startswith("/"):
             self._pane.set_prefix(entry[0])

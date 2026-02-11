@@ -1,4 +1,5 @@
 """Mode-specific key routing for editor input."""
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -29,7 +30,11 @@ class ModeRouter:
     def handle_key(self, key_name: str) -> bool:
         if self._state.mode == "normal":
             return handle_normal_key(
-                key_name, self._on_mode_change, self._on_move, self._on_append, self._on_open_line
+                key_name,
+                self._on_mode_change,
+                self._on_move,
+                self._on_append,
+                self._on_open_line,
             )
         if self._state.mode == "insert":
             return handle_insert_key(
