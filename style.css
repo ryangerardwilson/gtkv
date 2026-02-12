@@ -3,14 +3,13 @@
 }
 
 window {
-  background: linear-gradient(180deg, #0f1a24 0%, #10161c 100%);
+  background: transparent;
 }
 
 .block {
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(17, 23, 29, 0.86);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  border: 0;
+  background: rgba(17, 23, 29, 0.8);
 }
 
 .block-text textview {

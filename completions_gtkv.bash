@@ -9,7 +9,7 @@ _gtkv_complete() {
       COMPREPLY=( $(compgen -W "-h --help -v --version -u --upgrade --image" -- "${cur}") )
       ;;
     *)
-      COMPREPLY=( $(compgen -f -X '!*.gtkv' -- "${cur}") )
+      COMPREPLY=( $(compgen -f -X '!*.docv' -- "${cur}") )
       ;;
   esac
   compopt -o filenames 2>/dev/null || true

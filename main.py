@@ -358,8 +358,8 @@ class BlockApp(Gtk.Application):
                 if not first:
                     return False
                 path = Path(first)
-                if path.suffix != ".gtkv":
-                    path = path.with_suffix(".gtkv")
+                if path.suffix != ".docv":
+                    path = path.with_suffix(".docv")
                 save_document(path, self._document)
                 return False
 
@@ -393,7 +393,7 @@ def parse_args(argv: Sequence[str]) -> tuple[argparse.Namespace, list[str]]:
     parser.add_argument("-v", "--version", action="store_true", help="Show version")
     parser.add_argument("-u", "--upgrade", action="store_true", help="Upgrade")
     parser.add_argument("--image", help="Optional image to show in sample doc")
-    parser.add_argument("file", nargs="?", help="Optional .gtkv document to open")
+    parser.add_argument("file", nargs="?", help="Optional .docv document to open")
     if hasattr(parser, "parse_known_intermixed_args"):
         args, gtk_args = parser.parse_known_intermixed_args(argv)
     else:

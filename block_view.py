@@ -127,12 +127,13 @@ class _ImageBlockView(Gtk.Frame):
 
         if os.path.exists(path):
             picture = Gtk.Picture.new_for_filename(path)
-            picture.set_can_shrink(True)
+            picture.set_can_shrink(False)
             picture.set_content_fit(Gtk.ContentFit.CONTAIN)
             picture.set_margin_top(12)
             picture.set_margin_bottom(12)
             picture.set_margin_start(12)
             picture.set_margin_end(12)
+            picture.set_valign(Gtk.Align.START)
             self.set_child(picture)
         else:
             label = Gtk.Label(label=f"Missing image: {alt or path}")
