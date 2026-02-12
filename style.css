@@ -9,7 +9,7 @@ window {
 .block {
   border-radius: 10px;
   border: 0;
-  background: rgba(17, 23, 29, 0.8);
+  background: rgba(24, 24, 24, 0.8);
 }
 
 .block-text textview {
@@ -19,11 +19,11 @@ window {
 }
 
 .block-image {
-  background: rgba(14, 19, 24, 0.9);
+  background: rgba(18, 18, 18, 0.9);
 }
 
 .block-image label {
-  color: #f3b74f;
+  color: #cfcfcf;
 }
 
 .block-selected {
