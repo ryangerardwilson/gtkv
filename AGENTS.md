@@ -8,7 +8,7 @@ non-goals of the project, and why the current architecture exists.
 - Render a block-based GTK4 UI where text blocks and image blocks never share a line.
 - Keep the core GTK app focused on layout, navigation, and block orchestration.
 - Minimize internal editor logic and keep the codebase easy to refactor.
-- Persist documents as a single SQLite `.docv` file with embedded image blobs.
+- Persist documents as a single SQLite `.docv` file with embedded image blobs and 3D block sources.
 
 ## Non-goals
 - Inline image rendering inside text lines.
@@ -29,6 +29,8 @@ need to recreate Vim modes internally.
   - `block_model.py` for block data structures
   - `block_view.py` for GTK rendering + navigation
   - `style.css` for UI styling
+  - `three_template.py` for 3D block HTML boilerplate
+  - `three.module.min.js` for bundled Three.js
   - `completions_gtkv.bash` for shell completion
 
 ## Release + packaging workflow

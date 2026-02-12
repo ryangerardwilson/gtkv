@@ -3,7 +3,7 @@
 `gtkv` is a GTK4 block-based editor that keeps Vim as the editor. Text and
 images live in separate blocks, and text blocks open in an external terminal
 Vim session for full editing power. Documents are stored as a single `.docv`
-SQLite file.
+SQLite file. 3D blocks render with WebKitGTK using a bundled Three.js module.
 
 ---
 
@@ -60,7 +60,7 @@ python main.py
 - `Ctrl+I` — insert an image block via the `o` picker.
 - `Ctrl+3` — insert a 3D block and edit its Three.js HTML in Vim.
 - `j/k` — move between blocks.
-- `Enter` — open the selected text block in Vim.
+- `Enter` — open the selected text or 3D block in Vim.
 - Exit Vim — refreshes the block content in GTK.
 - `Ctrl+S` — save the current document (prompts for a path on first save).
 - `-v` — print installed version.
@@ -81,6 +81,7 @@ The installer drops a completion script into
 - Text and images are separate blocks; there is no inline mixing.
 - Vim runs externally in your terminal; GTK stays focused on layout.
 - Documents are stored as SQLite `.docv` files containing text blocks and image blobs.
+- 3D blocks store their HTML/JS source inside the `.docv` file.
 
 ---
 

@@ -6,6 +6,7 @@ from pathlib import Path
 import gi
 
 gi.require_version("Gtk", "4.0")
+gi.require_version("Gdk", "4.0")
 try:
     gi.require_version("WebKit", "6.0")
 except ValueError:
@@ -13,7 +14,7 @@ except ValueError:
         gi.require_version("WebKit", "4.1")
     except ValueError:
         pass
-from gi.repository import Gtk
+from gi.repository import Gdk, Gtk
 try:
     from gi.repository import WebKit
 except Exception:
@@ -223,6 +224,13 @@ class _ThreeBlockView(Gtk.Frame):
                 settings.set_allow_file_access_from_file_urls(True)
             if hasattr(settings, "set_allow_universal_access_from_file_urls"):
                 settings.set_allow_universal_access_from_file_urls(True)
+        background = Gdk.RGBA()
+        background.red = 0.0
+        background.green = 0.0
+        background.blue = 0.0
+        background.alpha = 0.0
+        if hasattr(view, "set_background_color"):
+            view.set_background_color(background)
         view.set_vexpand(False)
         view.set_hexpand(True)
         view.set_size_request(-1, 360)
