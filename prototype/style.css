@@ -1,0 +1,33 @@
+* {
+  font-family: "JetBrains Mono", "Fira Code", "SF Mono", monospace;
+}
+
+window {
+  background: linear-gradient(180deg, #0f1a24 0%, #10161c 100%);
+}
+
+.block {
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(17, 23, 29, 0.86);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+.block-text textview {
+  background: transparent;
+  color: #d6e1eb;
+  font-size: 14px;
+}
+
+.block-image {
+  background: rgba(14, 19, 24, 0.9);
+}
+
+.block-image label {
+  color: #f3b74f;
+}
+
+.block-selected {
+  border: 1px solid rgba(88, 176, 255, 0.9);
+  box-shadow: 0 0 0 2px rgba(88, 176, 255, 0.3);
+}
