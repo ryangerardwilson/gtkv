@@ -22,6 +22,7 @@ from gi.repository import Gdk, GLib, Gtk
 from _version import __version__
 from block_model import BlockDocument, ImageBlock, TextBlock, sample_document
 from block_view import BlockEditorView
+from persistence_sqlite import load_document, save_document
 
 
 INSTALL_SH_URL = (
@@ -45,7 +46,8 @@ class BlockApp(Gtk.Application):
         window.set_title("GTKV")
         window.set_default_size(960, 720)
 
-        self._document = sample_document(self._image_path)
+        if self._document is None:
+            self._document = sample_document(self._image_path)
         self._view = BlockEditorView()
         self._view.set_document(self._document)
 
@@ -74,6 +76,8 @@ class BlockApp(Gtk.Application):
                 return True
             if keyval in (ord("i"), ord("I")):
                 return self._begin_image_selector_o()
+            if keyval in (ord("s"), ord("S")):
+                return self._save_document()
 
         if keyval in (ord("j"), ord("J"), Gdk.KEY_Down):
             self._view.move_selection(1)
@@ -143,6 +147,14 @@ class BlockApp(Gtk.Application):
         GLib.timeout_add(250, self._poll_for_editor_exit)
         return True
 
+    def _save_document(self) -> bool:
+        if self._document is None:
+            return False
+        if self._document.path is not None:
+            save_document(self._document.path, self._document)
+            return True
+        return self._begin_save_selector_o()
+
     def _poll_for_editor_exit(self) -> bool:
         if not self._active_editor or self._document is None or self._view is None:
             self._active_editor = None
@@ -204,6 +216,32 @@ class BlockApp(Gtk.Application):
 
         self._last_picker_start = time.monotonic()
         self._poll_for_o_picker_selection(cache_path)
+        return True
+
+    def _begin_save_selector_o(self) -> bool:
+        if self._document is None:
+            return False
+        if shutil.which("o") is None:
+            return False
+
+        downloads_dir = Path.home() / "Downloads"
+        start_dir = downloads_dir if downloads_dir.exists() else Path.home()
+        cache_path = self._get_o_picker_cache_path()
+        if cache_path and cache_path.exists():
+            try:
+                cache_path.unlink()
+            except OSError:
+                pass
+
+        cmd = ["o", "-s", start_dir.as_posix()]
+        if not self._launch_terminal(cmd, cwd=start_dir):
+            return False
+
+        if not cache_path:
+            return False
+
+        self._last_picker_start = time.monotonic()
+        self._poll_for_o_save_path(cache_path)
         return True
 
     def _launch_terminal(self, command: list[str], cwd: Path | None = None) -> bool:
@@ -303,6 +341,35 @@ class BlockApp(Gtk.Application):
 
         GLib.timeout_add(200, _check)
 
+    def _poll_for_o_save_path(self, cache_path: Path) -> None:
+        start_time = self._last_picker_start or time.monotonic()
+
+        def _check() -> bool:
+            if self._document is None:
+                return False
+            if cache_path.exists():
+                try:
+                    data = cache_path.read_text(encoding="utf-8").strip()
+                except OSError:
+                    return False
+                if not data:
+                    return False
+                first = data.splitlines()[0].strip()
+                if not first:
+                    return False
+                path = Path(first)
+                if path.suffix != ".gtkv":
+                    path = path.with_suffix(".gtkv")
+                save_document(path, self._document)
+                return False
+
+            if time.monotonic() - start_time > 300:
+                return False
+
+            return True
+
+        GLib.timeout_add(200, _check)
+
 
 def _load_css(css_path: Path) -> None:
     if not css_path.exists():
@@ -326,6 +393,7 @@ def parse_args(argv: Sequence[str]) -> tuple[argparse.Namespace, list[str]]:
     parser.add_argument("-v", "--version", action="store_true", help="Show version")
     parser.add_argument("-u", "--upgrade", action="store_true", help="Upgrade")
     parser.add_argument("--image", help="Optional image to show in sample doc")
+    parser.add_argument("file", nargs="?", help="Optional .gtkv document to open")
     if hasattr(parser, "parse_known_intermixed_args"):
         args, gtk_args = parser.parse_known_intermixed_args(argv)
     else:
@@ -395,11 +463,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     if options.upgrade:
         return _run_upgrade()
 
+    document_path = Path(options.file).expanduser() if options.file else None
     image_path = options.image or os.getenv("GTKV_IMAGE")
     if image_path and not os.path.exists(image_path):
         image_path = None
 
-    app = BlockApp(image_path)
+    if document_path and document_path.exists():
+        app = BlockApp(None)
+        app._document = load_document(document_path)
+    else:
+        app = BlockApp(image_path)
+        if document_path:
+            app._document = sample_document(image_path)
+            app._document.set_path(document_path)
     _load_css(Path(__file__).with_name("style.css"))
     return app.run(gtk_args)
 

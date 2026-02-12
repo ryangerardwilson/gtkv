@@ -8,6 +8,7 @@ non-goals of the project, and why the current architecture exists.
 - Render a block-based GTK4 UI where text blocks and image blocks never share a line.
 - Keep the core GTK app focused on layout, navigation, and block orchestration.
 - Minimize internal editor logic and keep the codebase easy to refactor.
+- Persist documents as a single SQLite `.gtkv` file with embedded image blobs.
 
 ## Non-goals
 - Inline image rendering inside text lines.

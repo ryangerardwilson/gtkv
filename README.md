@@ -2,7 +2,8 @@
 
 `gtkv` is a GTK4 block-based editor that keeps Vim as the editor. Text and
 images live in separate blocks, and text blocks open in an external terminal
-Vim session for full editing power.
+Vim session for full editing power. Documents are stored as a single `.gtkv`
+SQLite file.
 
 ---
 
@@ -52,11 +53,13 @@ python main.py
 ## Usage
 
 - `gtkv` — start the editor.
+- `gtkv doc.gtkv` — open an existing document.
 - `Ctrl+V` — append a new text block.
 - `Ctrl+I` — insert an image block via the `o` picker.
 - `j/k` — move between blocks.
 - `Enter` — open the selected text block in Vim.
 - Exit Vim — refreshes the block content in GTK.
+- `Ctrl+S` — save the current document (prompts for a path on first save).
 - `-v` — print installed version.
 - `-u` — upgrade to the latest release.
 - `-h` — show CLI help.
@@ -74,6 +77,7 @@ The installer drops a completion script into
 
 - Text and images are separate blocks; there is no inline mixing.
 - Vim runs externally in your terminal; GTK stays focused on layout.
+- Documents are stored as SQLite `.gtkv` files containing text blocks and image blobs.
 
 ---
 
