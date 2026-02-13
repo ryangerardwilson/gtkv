@@ -139,6 +139,10 @@ class Orchestrator:
             if keyval in (ord("x"), ord("X")):
                 self._quit()
                 return True
+            if keyval in (ord("j"), ord("J")):
+                return actions.move_block(self._state, 1)
+            if keyval in (ord("k"), ord("K")):
+                return actions.move_block(self._state, -1)
 
         if keyval in (ord("j"), ord("J"), Gdk.KEY_Down):
             actions.move_selection(self._state, 1)

@@ -79,6 +79,18 @@ class BlockDocument:
             self._blocks.insert(index + 1, block)
         self._dirty = True
 
+    def move_block(self, from_index: int, to_index: int) -> bool:
+        if from_index < 0 or from_index >= len(self._blocks):
+            return False
+        if to_index < 0 or to_index >= len(self._blocks):
+            return False
+        if from_index == to_index:
+            return False
+        block = self._blocks.pop(from_index)
+        self._blocks.insert(to_index, block)
+        self._dirty = True
+        return True
+
     def remove_text_blocks_by_kind(self, kind: str) -> None:
         original_len = len(self._blocks)
         self._blocks = [

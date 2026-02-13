@@ -201,6 +201,7 @@ class BlockEditorView(Gtk.ScrolledWindow):
         lines = [
             "Navigation",
             "  j/k        move selection",
+            "  Ctrl+j/k   move block",
             "  g/G        first/last block",
             "  Enter      edit selected block",
             "  q          quit without saving",

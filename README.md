@@ -66,6 +66,7 @@ python main.py
 - `,ltx` — insert a LaTeX block rendered with KaTeX.
 - `,map` — insert a map block (Leaflet JS).
 - `j/k` — move between blocks.
+- `Ctrl+j/k` — move the selected block up/down.
 - `Enter` — open the selected text or code block in Vim.
 - Exit Vim — refreshes the block content in GTK.
 - `Ctrl+S` — save the current document.

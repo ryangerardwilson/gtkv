@@ -116,6 +116,20 @@ def move_selection(state: AppState, delta: int) -> bool:
     return True
 
 
+def move_block(state: AppState, delta: int) -> bool:
+    if state.document is None or state.view is None:
+        return False
+    index = state.view.get_selected_index()
+    target = index + delta
+    if not state.document.move_block(index, target):
+        return False
+    state.view.set_document(state.document)
+    state.view._selected_index = max(0, min(target, len(state.document.blocks) - 1))
+    state.view.refresh_selection()
+    state.view._scroll_to_selected()
+    return True
+
+
 def select_first(state: AppState) -> bool:
     if state.view is None:
         return False
