@@ -15,8 +15,8 @@ def render_map_html(source: str) -> str:
         "<!doctype html>\n"
         "<html>\n"
         "  <head>\n"
-        "    <meta charset=\"utf-8\" />\n"
-        f"    <link rel=\"stylesheet\" href=\"{LEAFLET_CSS_CDN}\" />\n"
+        '    <meta charset="utf-8" />\n'
+        f'    <link rel="stylesheet" href="{LEAFLET_CSS_CDN}" />\n'
         "    <style>\n"
         "      html, body { margin: 0; background: transparent; width: 100%; height: 100%; }\n"
         "      #map { width: 100%; height: 100%; }\n"
@@ -24,8 +24,8 @@ def render_map_html(source: str) -> str:
         "    </style>\n"
         "  </head>\n"
         "  <body>\n"
-        "    <div id=\"map\"></div>\n"
-        f"    <script src=\"{LEAFLET_JS_CDN}\"></script>\n"
+        '    <div id="map"></div>\n'
+        f'    <script src="{LEAFLET_JS_CDN}"></script>\n'
         "    <script>\n"
         f"      const userSource = {js_source};\n"
         "      const map = L.map('map', { zoomControl: false, attributionControl: true });\n"

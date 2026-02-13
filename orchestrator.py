@@ -14,7 +14,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Gdk", "4.0")
-from gi.repository import Gdk, GLib, Gtk  # type: ignore[import-not-found, attr-defined]
+from gi.repository import Gdk, Gtk  # type: ignore[import-not-found, attr-defined]
 
 import actions
 import config
@@ -24,7 +24,11 @@ import py_runner
 from export_html import export_document
 from _version import __version__
 from app_state import AppState
-from block_model import BlockDocument, LatexBlock, MapBlock, PythonImageBlock, ThreeBlock, sample_document
+from block_model import (
+    BlockDocument,
+    PythonImageBlock,
+    sample_document,
+)
 from block_view import BlockEditorView
 
 
@@ -104,7 +108,6 @@ class Orchestrator:
         self._state.view = view
         self._render_python_images_on_start()
 
-
         controller = Gtk.EventControllerKey()
         controller.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
         controller.connect("key-pressed", self.on_key_pressed)
@@ -112,7 +115,6 @@ class Orchestrator:
 
         window.set_child(view)
         window.present()
-
 
     def on_key_pressed(self, _controller, keyval, _keycode, state) -> bool:
         if self._state.document is None or self._state.view is None:
@@ -273,7 +275,6 @@ class Orchestrator:
     def _clear_editor(self) -> None:
         self._state.active_editor = None
 
-
     def _insert_three_block(self) -> bool:
         if not actions.insert_three_block(self._state):
             return False
@@ -385,14 +386,18 @@ def _prompt_python_path_cli() -> str | None:
     return text
 
 
-def parse_args(argv: Sequence[str]) -> tuple[argparse.Namespace, list[str], argparse.ArgumentParser]:
+def parse_args(
+    argv: Sequence[str],
+) -> tuple[argparse.Namespace, list[str], argparse.ArgumentParser]:
     parser = argparse.ArgumentParser(
         description="Block-based GTK4 editor with external Vim editing"
     )
     parser.add_argument("-v", "--version", action="store_true", help="Show version")
     parser.add_argument("-u", "--upgrade", action="store_true", help="Upgrade")
     parser.add_argument("-e", "--export", help="Export .docv to HTML")
-    parser.add_argument("-q", action="store_true", dest="demo", help="Quickstart content")
+    parser.add_argument(
+        "-q", action="store_true", dest="demo", help="Quickstart content"
+    )
     parser.add_argument("file", nargs="?", help=".docv document to open")
     if hasattr(parser, "parse_known_intermixed_args"):
         args, gtk_args = parser.parse_known_intermixed_args(argv)

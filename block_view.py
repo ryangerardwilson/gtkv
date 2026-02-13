@@ -94,7 +94,6 @@ class BlockEditorView(Gtk.ScrolledWindow):
         self._column.queue_resize()
         GLib.idle_add(self._column.queue_resize)
 
-
     def move_selection(self, delta: int) -> None:
         if not self._block_widgets:
             return
@@ -185,14 +184,18 @@ class BlockEditorView(Gtk.ScrolledWindow):
             return
         if from_index < 0 or to_index < 0:
             return
-        if from_index >= len(self._block_widgets) or to_index >= len(self._block_widgets):
+        if from_index >= len(self._block_widgets) or to_index >= len(
+            self._block_widgets
+        ):
             return
         if from_index == to_index:
             return
         widget = self._block_widgets.pop(from_index)
         self._block_widgets.insert(to_index, widget)
         self._column.remove(widget)
-        self._column.insert_child_after(widget, self._block_widgets[to_index - 1] if to_index > 0 else None)
+        self._column.insert_child_after(
+            widget, self._block_widgets[to_index - 1] if to_index > 0 else None
+        )
         if hasattr(widget, "reload_html"):
             try:
                 widget.reload_html()
@@ -207,7 +210,9 @@ class BlockEditorView(Gtk.ScrolledWindow):
         self._help_visible = not self._help_visible
         if self._help_visible:
             self.clear_selection()
-            self._help_scroll = self.get_vadjustment().get_value() if self.get_vadjustment() else 0.0
+            self._help_scroll = (
+                self.get_vadjustment().get_value() if self.get_vadjustment() else 0.0
+            )
             self._help_selected = self._selected_index
             self.set_child(self._help_panel)
             self._help_panel.grab_focus()
