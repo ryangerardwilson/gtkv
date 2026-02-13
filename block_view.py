@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+import hashlib
 import os
 from pathlib import Path
 
@@ -14,13 +16,13 @@ except ValueError:
         gi.require_version("WebKit", "4.1")
     except ValueError:
         pass
-from gi.repository import Gdk, Gtk
+from gi.repository import Gdk, Gtk  # type: ignore[import-not-found, attr-defined]
 try:
-    from gi.repository import WebKit
+    from gi.repository import WebKit  # type: ignore[import-not-found, attr-defined]
 except Exception:
     WebKit = None
 
-from block_model import BlockDocument, ImageBlock, TextBlock, ThreeBlock
+from block_model import BlockDocument, ImageBlock, PythonImageBlock, TextBlock, ThreeBlock
 
 
 class BlockEditorView(Gtk.ScrolledWindow):
@@ -56,6 +58,8 @@ class BlockEditorView(Gtk.ScrolledWindow):
                 widget = _ImageBlockView(block.path, block.alt)
             elif isinstance(block, ThreeBlock):
                 widget = _ThreeBlockView(block.source)
+            elif isinstance(block, PythonImageBlock):
+                widget = _PyImageBlockView(block)
             else:
                 continue
             self._block_widgets.append(widget)
@@ -238,6 +242,58 @@ class _ThreeBlockView(Gtk.Frame):
         self.set_child(view)
 
 
+class _PyImageBlockView(Gtk.Frame):
+    def __init__(self, block: PythonImageBlock) -> None:
+        super().__init__()
+        self.add_css_class("block")
+        self.add_css_class("block-image")
+
+        path = block.rendered_path or _materialize_pyimage(block)
+        if path and os.path.exists(path):
+            picture = Gtk.Picture.new_for_filename(path)
+            picture.set_can_shrink(False)
+            picture.set_content_fit(Gtk.ContentFit.CONTAIN)
+            picture.set_margin_top(12)
+            picture.set_margin_bottom(12)
+            picture.set_margin_start(12)
+            picture.set_margin_end(12)
+            picture.set_valign(Gtk.Align.START)
+            self.set_child(picture)
+            return
+
+        label_text = "Python render pending"
+        if block.last_error:
+            label_text = f"Python render error: {block.last_error}"
+        label = Gtk.Label(label=label_text)
+        label.set_margin_top(12)
+        label.set_margin_bottom(12)
+        label.set_margin_start(12)
+        label.set_margin_end(12)
+        self.set_child(label)
+
+
 def _three_module_uri() -> str:
     bundled = Path(__file__).with_name("three.module.min.js")
     return bundled.resolve().as_uri()
+
+
+def _materialize_pyimage(block: PythonImageBlock) -> str | None:
+    if not block.rendered_data:
+        return None
+    cache_root = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
+    cache_dir = cache_root / "gtkv" / "pyimage"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    digest_source = block.rendered_hash or block.rendered_data
+    digest = hashlib.sha256(digest_source.encode("utf-8")).hexdigest()[:16]
+    extension = ".svg" if block.format == "svg" else ".png"
+    image_path = cache_dir / f"pyimage-{digest}{extension}"
+    if image_path.exists():
+        return image_path.as_posix()
+    try:
+        if extension == ".svg":
+            image_path.write_text(block.rendered_data, encoding="utf-8")
+        else:
+            image_path.write_bytes(base64.b64decode(block.rendered_data.encode("utf-8")))
+    except (OSError, ValueError):
+        return None
+    return image_path.as_posix()

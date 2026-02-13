@@ -1,15 +1,16 @@
 from __future__ import annotations
 
+import base64
 import hashlib
 import mimetypes
 import os
 import sqlite3
 from pathlib import Path
 
-from block_model import BlockDocument, ImageBlock, TextBlock, ThreeBlock
+from block_model import BlockDocument, ImageBlock, PythonImageBlock, TextBlock, ThreeBlock
 
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 
 def load_document(path: Path) -> BlockDocument:
@@ -19,7 +20,8 @@ def load_document(path: Path) -> BlockDocument:
         _ensure_schema(conn)
         blocks = []
         for row in conn.execute(
-            "SELECT id, position, type, text, image_id FROM blocks ORDER BY position"
+            "SELECT id, position, type, text, image_id, format, rendered_data, rendered_hash, error "
+            "FROM blocks ORDER BY position"
         ):
             if row["type"] == "text":
                 blocks.append(TextBlock(row["text"] or ""))
@@ -45,6 +47,23 @@ def load_document(path: Path) -> BlockDocument:
                 continue
             if row["type"] == "three":
                 blocks.append(ThreeBlock(row["text"] or ""))
+            if row["type"] == "pyimage":
+                rendered_path = _materialize_pyimage(
+                    path,
+                    row["rendered_data"],
+                    row["format"],
+                    row["rendered_hash"],
+                )
+                blocks.append(
+                    PythonImageBlock(
+                        row["text"] or "",
+                        format=row["format"] or "png",
+                        rendered_data=row["rendered_data"],
+                        rendered_hash=row["rendered_hash"],
+                        last_error=row["error"],
+                        rendered_path=rendered_path,
+                    )
+                )
         doc = BlockDocument(blocks, path=path)
         doc.clear_dirty()
         return doc
@@ -86,6 +105,23 @@ def save_document(path: Path, document: BlockDocument) -> None:
                     "INSERT INTO blocks (position, type, text) VALUES (?, 'three', ?)",
                     (position, block.source),
                 )
+            elif isinstance(block, PythonImageBlock):
+                conn.execute(
+                    """
+                    INSERT INTO blocks
+                        (position, type, text, format, rendered_data, rendered_hash, error)
+                    VALUES
+                        (?, 'pyimage', ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        position,
+                        block.source,
+                        block.format,
+                        block.rendered_data,
+                        block.rendered_hash,
+                        block.last_error,
+                    ),
+                )
             position += 1
 
         _upsert_meta(conn, "schema_version", str(SCHEMA_VERSION))
@@ -126,9 +162,13 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
         CREATE TABLE IF NOT EXISTS blocks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             position INTEGER NOT NULL,
-            type TEXT NOT NULL CHECK(type IN ('text','image','three')),
+            type TEXT NOT NULL CHECK(type IN ('text','image','three','pyimage')),
             text TEXT,
             image_id INTEGER,
+            format TEXT,
+            rendered_data TEXT,
+            rendered_hash TEXT,
+            error TEXT,
             created_at TEXT DEFAULT (datetime('now')),
             updated_at TEXT DEFAULT (datetime('now')),
             FOREIGN KEY(image_id) REFERENCES images(id) ON DELETE SET NULL
@@ -187,6 +227,35 @@ def _migrate_schema(conn: sqlite3.Connection, current_version: int) -> None:
         )
         conn.execute("DROP TABLE blocks_old")
 
+    if current_version < 3:
+        conn.execute("ALTER TABLE blocks RENAME TO blocks_old")
+        conn.execute(
+            """
+            CREATE TABLE blocks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                position INTEGER NOT NULL,
+                type TEXT NOT NULL CHECK(type IN ('text','image','three','pyimage')),
+                text TEXT,
+                image_id INTEGER,
+                format TEXT,
+                rendered_data TEXT,
+                rendered_hash TEXT,
+                error TEXT,
+                created_at TEXT DEFAULT (datetime('now')),
+                updated_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY(image_id) REFERENCES images(id) ON DELETE SET NULL
+            )
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO blocks (id, position, type, text, image_id, created_at, updated_at)
+            SELECT id, position, type, text, image_id, created_at, updated_at
+            FROM blocks_old
+            """
+        )
+        conn.execute("DROP TABLE blocks_old")
+
     _upsert_meta(conn, "schema_version", str(SCHEMA_VERSION))
 
 
@@ -211,6 +280,31 @@ def _materialize_image(doc_path: Path, image_id: int, mime: str, data: bytes) ->
     image_path = cache_dir / filename
     if not image_path.exists():
         image_path.write_bytes(data)
+    return image_path.as_posix()
+
+
+def _materialize_pyimage(
+    doc_path: Path,
+    rendered_data: str | None,
+    render_format: str | None,
+    rendered_hash: str | None,
+) -> str | None:
+    if not rendered_data:
+        return None
+    cache_dir = _cache_root_for_document(doc_path) / "pyimage"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    digest_source = rendered_hash or rendered_data
+    digest = hashlib.sha256(digest_source.encode("utf-8")).hexdigest()[:16]
+    extension = ".svg" if (render_format or "png") == "svg" else ".png"
+    image_path = cache_dir / f"pyimage-{digest}{extension}"
+    if not image_path.exists():
+        try:
+            if extension == ".svg":
+                image_path.write_text(rendered_data, encoding="utf-8")
+            else:
+                image_path.write_bytes(base64.b64decode(rendered_data.encode("utf-8")))
+        except (OSError, ValueError):
+            return None
     return image_path.as_posix()
 
 

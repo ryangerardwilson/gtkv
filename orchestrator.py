@@ -16,12 +16,14 @@ gi.require_version("Gdk", "4.0")
 from gi.repository import Gdk, Gtk  # type: ignore[attr-defined]
 
 import actions
+import config
 import document_io
 import editor
 import picker
+import py_runner
 from _version import __version__
 from app_state import AppState
-from block_model import sample_document
+from block_model import PythonImageBlock, sample_document
 from block_view import BlockEditorView
 
 
@@ -45,6 +47,7 @@ class Orchestrator:
     def __init__(self) -> None:
         self._state = AppState()
         self._image_path: str | None = None
+        self._python_path: str | None = None
 
     def run(self, argv: Sequence[str] | None = None) -> int:
         args = list(sys.argv[1:] if argv is None else argv)
@@ -60,6 +63,7 @@ class Orchestrator:
         if image_path and not os.path.exists(image_path):
             image_path = None
         self._image_path = image_path
+        self._python_path = config.get_python_path()
 
         if document_path and document_path.exists():
             self._state.document = document_io.load(document_path)
@@ -90,6 +94,7 @@ class Orchestrator:
         window.add_controller(controller)
 
         window.set_child(view)
+        self._ensure_python_path(window)
         window.present()
 
     def on_key_pressed(self, _controller, keyval, _keycode, state) -> bool:
@@ -106,6 +111,8 @@ class Orchestrator:
                 return self._begin_image_selector_o()
             if keyval == ord("3"):
                 return self._insert_three_block()
+            if keyval in (ord("p"), ord("P")):
+                return self._insert_python_image_block()
             if keyval in (ord("s"), ord("S")):
                 return self._save_document()
 
@@ -156,12 +163,19 @@ class Orchestrator:
 
     def _handle_editor_update(self, index: int, kind: str, updated_text: str) -> None:
         actions.update_block_from_editor(self._state, index, kind, updated_text)
+        if kind == "pyimage":
+            self._render_python_image(index)
 
     def _clear_editor(self) -> None:
         self._state.active_editor = None
 
     def _insert_three_block(self) -> bool:
         if not actions.insert_three_block(self._state):
+            return False
+        return self._open_selected_block_editor()
+
+    def _insert_python_image_block(self) -> bool:
+        if not actions.insert_python_image_block(self._state):
             return False
         return self._open_selected_block_editor()
 
@@ -197,6 +211,51 @@ class Orchestrator:
 
         return picker.begin_save_selector_o(start_dir, _on_pick)
 
+    def _render_python_image(self, index: int) -> None:
+        document = self._state.document
+        view = self._state.view
+        if document is None or view is None:
+            return
+
+        if index < 0 or index >= len(document.blocks):
+            return
+        block = document.blocks[index]
+        if not isinstance(block, PythonImageBlock):
+            return
+
+        python_path = self._python_path
+        if not python_path:
+            document.set_python_image_render(
+                index,
+                rendered_data=None,
+                rendered_hash=None,
+                last_error="Python path not configured",
+                rendered_path=None,
+            )
+            view.set_document(document)
+            return
+
+        result = py_runner.render_python_image(block.source, python_path, block.format)
+        document.set_python_image_render(
+            index,
+            rendered_data=result.rendered_data,
+            rendered_hash=result.rendered_hash,
+            last_error=result.error,
+            rendered_path=None,
+        )
+        view.set_document(document)
+
+    def _ensure_python_path(self, window: Gtk.ApplicationWindow) -> None:
+        if self._python_path:
+            return
+        _show_python_path_prompt(window, self._set_python_path)
+
+    def _set_python_path(self, path: str | None) -> None:
+        if not path:
+            return
+        self._python_path = path
+        config.set_python_path(path)
+
 
 def _get_picker_start_dir() -> Path:
     downloads_dir = Path.home() / "Downloads"
@@ -218,6 +277,42 @@ def _load_css(css_path: Path) -> None:
     Gtk.StyleContext.add_provider_for_display(
         display, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
     )
+
+
+def _show_python_path_prompt(window: Gtk.ApplicationWindow, on_save) -> None:
+    dialog = Gtk.Dialog(title="Configure Python", transient_for=window, modal=True)
+    dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+    dialog.add_button("Save", Gtk.ResponseType.OK)
+
+    content = dialog.get_content_area()
+    label = Gtk.Label(label="Python path for rendering:")
+    label.set_margin_top(12)
+    label.set_margin_bottom(6)
+    label.set_margin_start(12)
+    label.set_margin_end(12)
+    entry = Gtk.Entry()
+    entry.set_margin_bottom(12)
+    entry.set_margin_start(12)
+    entry.set_margin_end(12)
+    entry.set_placeholder_text("/home/user/venv/bin/python")
+    content.append(label)
+    content.append(entry)
+    dialog.show()
+
+    def _on_response(_dialog: Gtk.Dialog, response: int) -> None:
+        text = entry.get_text().strip()
+        dialog.destroy()
+        if response != Gtk.ResponseType.OK:
+            return
+        if not text:
+            return
+        if not os.path.exists(text):
+            return
+        if not os.access(text, os.X_OK):
+            return
+        on_save(text)
+
+    dialog.connect("response", _on_response)
 
 
 def parse_args(argv: Sequence[str]) -> tuple[argparse.Namespace, list[str]]:

@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from app_state import AppState
-from block_model import ImageBlock, TextBlock, ThreeBlock
+from block_model import ImageBlock, PythonImageBlock, TextBlock, ThreeBlock
 from block_registry import get_block_capabilities
 from three_template import default_three_template
 
@@ -35,6 +35,22 @@ def insert_three_block(state: AppState) -> bool:
         return False
     insert_at = state.view.get_selected_index()
     state.document.insert_block_after(insert_at, ThreeBlock(default_three_template()))
+    state.view.set_document(state.document)
+    state.view.move_selection(1)
+    return True
+
+
+def insert_python_image_block(state: AppState) -> bool:
+    if state.document is None or state.view is None:
+        return False
+    insert_at = state.view.get_selected_index()
+    template = (
+        "import matplotlib.pyplot as plt\n\n"
+        "fig, ax = plt.subplots()\n"
+        "ax.plot([0, 1, 2], [0, 1, 0.5])\n"
+        "fig.savefig(__gtkv__.renderer, dpi=200, transparent=True, bbox_inches=\"tight\")\n"
+    )
+    state.document.insert_block_after(insert_at, PythonImageBlock(template))
     state.view.set_document(state.document)
     state.view.move_selection(1)
     return True
@@ -78,6 +94,8 @@ def get_selected_edit_payload(
         content = block.text
     elif isinstance(block, ThreeBlock):
         content = block.source
+    elif isinstance(block, PythonImageBlock):
+        content = block.source
     else:
         return None
 
@@ -91,6 +109,8 @@ def update_block_from_editor(
         return False
     if kind == "three":
         state.document.set_three_block(index, updated_text)
+    elif kind == "pyimage":
+        state.document.set_python_image_block(index, updated_text)
     else:
         state.document.set_text_block(index, updated_text)
     state.view.set_document(state.document)

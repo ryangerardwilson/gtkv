@@ -26,7 +26,17 @@ class ThreeBlock:
     title: str = ""
 
 
-Block = TextBlock | ImageBlock | ThreeBlock
+@dataclass(frozen=True)
+class PythonImageBlock:
+    source: str
+    format: str = "png"
+    rendered_data: str | None = None
+    rendered_hash: str | None = None
+    last_error: str | None = None
+    rendered_path: str | None = None
+
+
+Block = TextBlock | ImageBlock | ThreeBlock | PythonImageBlock
 
 
 class BlockDocument:
@@ -80,6 +90,43 @@ class BlockDocument:
         block = self._blocks[index]
         if isinstance(block, ThreeBlock):
             self._blocks[index] = ThreeBlock(source, title=block.title)
+            self._dirty = True
+
+    def set_python_image_block(self, index: int, source: str) -> None:
+        if index < 0 or index >= len(self._blocks):
+            return
+        block = self._blocks[index]
+        if isinstance(block, PythonImageBlock):
+            self._blocks[index] = PythonImageBlock(
+                source,
+                format=block.format,
+                rendered_data=None,
+                rendered_hash=None,
+                last_error=None,
+                rendered_path=None,
+            )
+            self._dirty = True
+
+    def set_python_image_render(
+        self,
+        index: int,
+        rendered_data: str | None,
+        rendered_hash: str | None,
+        last_error: str | None,
+        rendered_path: str | None,
+    ) -> None:
+        if index < 0 or index >= len(self._blocks):
+            return
+        block = self._blocks[index]
+        if isinstance(block, PythonImageBlock):
+            self._blocks[index] = PythonImageBlock(
+                block.source,
+                format=block.format,
+                rendered_data=rendered_data,
+                rendered_hash=rendered_hash,
+                last_error=last_error,
+                rendered_path=rendered_path,
+            )
             self._dirty = True
 
 
