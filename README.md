@@ -58,12 +58,15 @@ python main.py
 
 - `gtkv` — start the editor.
 - `gtkv doc.docv` — open an existing document.
-- `Ctrl+V` — append a new text block.
-- `Ctrl+3` — insert a 3D block and edit its Three.js module JS in Vim.
-- `Ctrl+P` — insert a Python render block (SVG output).
-- `Ctrl+L` — insert a LaTeX block rendered with KaTeX.
+- `,p` — insert a paragraph block.
+- `,ht` — insert a title block.
+- `,h1` / `,h2` / `,h3` — insert heading blocks.
+- `,toc` — insert a table of contents block.
+- `,js` — insert a 3D block and edit its Three.js module JS in Vim.
+- `,py` — insert a Python render block (SVG output).
+- `,ltx` — insert a LaTeX block rendered with KaTeX.
 - `j/k` — move between blocks.
-- `Enter` — open the selected text or 3D block in Vim.
+- `Enter` — open the selected text or code block in Vim.
 - Exit Vim — refreshes the block content in GTK.
 - `Ctrl+S` — save the current document (prompts for a path on first save).
 - `-v` — print installed version.

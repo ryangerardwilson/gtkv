@@ -43,7 +43,8 @@ def _parse_blocks(raw: str) -> list:
             return
         content = "\n".join(current_lines).rstrip("\n")
         if current_type == "text":
-            blocks.append(TextBlock(content))
+            kind = current_meta.get("kind", "body")
+            blocks.append(TextBlock(content, kind=kind))
         elif current_type == "three":
             blocks.append(ThreeBlock(content))
         elif current_type == "pyimage":
@@ -62,10 +63,14 @@ def _parse_blocks(raw: str) -> list:
             current_lines = []
             current_meta = {}
             continue
-        if current_type == "pyimage" and ":" in line and not current_lines:
+        if current_type in ("pyimage", "text") and ":" in line and not current_lines:
             key, value = line.split(":", 1)
-            if key.strip() == "format":
-                current_meta[key.strip()] = value.strip()
+            key = key.strip()
+            if current_type == "pyimage" and key == "format":
+                current_meta[key] = value.strip()
+                continue
+            if current_type == "text" and key == "kind":
+                current_meta[key] = value.strip()
                 continue
         current_lines.append(line)
 
@@ -78,6 +83,7 @@ def _serialize_blocks(document: BlockDocument) -> str:
     for block in document.blocks:
         if isinstance(block, TextBlock):
             parts.append("::text")
+            parts.append(f"kind: {block.kind}")
             parts.append(block.text.rstrip("\n"))
             continue
         if isinstance(block, ThreeBlock):

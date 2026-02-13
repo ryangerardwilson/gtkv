@@ -10,6 +10,7 @@ from three_template import default_three_template
 @dataclass(frozen=True)
 class TextBlock:
     text: str
+    kind: str = "body"
 
 
 @dataclass(frozen=True)
@@ -78,7 +79,15 @@ class BlockDocument:
             return
         block = self._blocks[index]
         if isinstance(block, TextBlock):
-            self._blocks[index] = TextBlock(text)
+            self._blocks[index] = TextBlock(text, kind=block.kind)
+            self._dirty = True
+
+    def set_text_block_kind(self, index: int, kind: str) -> None:
+        if index < 0 or index >= len(self._blocks):
+            return
+        block = self._blocks[index]
+        if isinstance(block, TextBlock):
+            self._blocks[index] = TextBlock(block.text, kind=kind)
             self._dirty = True
 
     def set_three_block(self, index: int, source: str) -> None:
@@ -138,23 +147,30 @@ class BlockDocument:
 def sample_document() -> BlockDocument:
     blocks: List[Block] = [
         TextBlock(
-            "# GTKV block editor\n"
-            "Navigate blocks with j/k, open a text block with Enter.\n"
-            "Blocks are separate; no inline mixing.\n"
+            "Title",
+            kind="title",
         )
     ]
 
     blocks.extend(
         [
             TextBlock(
-                "# Editing\n"
-                "Enter opens a temp file in Vim inside your terminal.\n"
-                "Exit Vim to refresh the block content.\n"
+                "Heading1",
+                kind="h1",
             ),
             TextBlock(
-                "# Python renders\n"
+                "Enter opens a temp file in Vim inside your terminal.\n"
+                "Exit Vim to refresh the block content.",
+                kind="body",
+            ),
+            TextBlock(
+                "Heading2",
+                kind="h2",
+            ),
+            TextBlock(
                 "Python blocks render to SVG via __gtkv__.renderer.\n"
-                "They are rendered at runtime for export.\n"
+                "They are rendered at runtime for export.",
+                kind="body",
             ),
             PythonImageBlock(
                 "import matplotlib.pyplot as plt\n"
@@ -169,9 +185,13 @@ def sample_document() -> BlockDocument:
                 r"\int_0^\infty e^{-x^2} dx = \frac{\sqrt{\pi}}{2}"
             ),
             TextBlock(
-                "# Notes\n"
+                "Heading3",
+                kind="h3",
+            ),
+            TextBlock(
                 "- No inline mixing; each block is its own unit.\n"
-                "- Vim runs externally; GTK stays focused on layout.\n"
+                "- Vim runs externally; GTK stays focused on layout.",
+                kind="body",
             ),
             ThreeBlock(default_three_template()),
         ]

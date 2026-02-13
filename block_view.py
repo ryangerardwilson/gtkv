@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+from typing import Sequence
 from pathlib import Path
 
 import gi
@@ -15,7 +16,7 @@ except ValueError:
         gi.require_version("WebKit", "4.1")
     except ValueError:
         pass
-from gi.repository import Gdk, Gtk  # type: ignore[import-not-found, attr-defined]
+from gi.repository import Gdk, GLib, Gtk  # type: ignore[import-not-found, attr-defined]
 try:
     from gi.repository import WebKit  # type: ignore[import-not-found, attr-defined]
 except Exception:
@@ -52,9 +53,13 @@ class BlockEditorView(Gtk.ScrolledWindow):
 
         self._block_widgets = []
 
+        toc_text = _build_toc(
+            [block for block in document.blocks if isinstance(block, TextBlock)]
+        )
         for block in document.blocks:
             if isinstance(block, TextBlock):
-                widget = _TextBlockView(block.text)
+                text = toc_text if block.kind == "toc" else block.text
+                widget = _TextBlockView(text, block.kind)
             elif isinstance(block, ThreeBlock):
                 widget = _ThreeBlockView(block.source)
             elif isinstance(block, PythonImageBlock):
@@ -70,6 +75,8 @@ class BlockEditorView(Gtk.ScrolledWindow):
             self._selected_index, max(len(self._block_widgets) - 1, 0)
         )
         self._refresh_selection()
+        self._column.queue_resize()
+        GLib.idle_add(self._column.queue_resize)
 
     def move_selection(self, delta: int) -> None:
         if not self._block_widgets:
@@ -141,20 +148,29 @@ class BlockEditorView(Gtk.ScrolledWindow):
 
 
 class _TextBlockView(Gtk.Frame):
-    def __init__(self, text: str) -> None:
+    def __init__(self, text: str, kind: str) -> None:
         super().__init__()
         self.add_css_class("block")
         self.add_css_class("block-text")
+        self.add_css_class(f"block-text-{kind}")
 
         self._text_view = Gtk.TextView()
         self._text_view.set_monospace(True)
         self._text_view.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
-        self._text_view.set_top_margin(12)
-        self._text_view.set_bottom_margin(12)
+        if kind in {"title", "h1", "h2", "h3"}:
+            self._text_view.set_top_margin(18)
+            self._text_view.set_bottom_margin(14)
+        else:
+            self._text_view.set_top_margin(12)
+            self._text_view.set_bottom_margin(12)
         self._text_view.set_left_margin(12)
         self._text_view.set_right_margin(12)
-        self._text_view.set_pixels_above_lines(0)
-        self._text_view.set_pixels_below_lines(0)
+        if kind in {"title", "h1", "h2", "h3"}:
+            self._text_view.set_pixels_above_lines(4)
+            self._text_view.set_pixels_below_lines(4)
+        else:
+            self._text_view.set_pixels_above_lines(0)
+            self._text_view.set_pixels_below_lines(0)
         self._text_view.set_pixels_inside_wrap(0)
         self._text_view.set_editable(False)
         self._text_view.set_cursor_visible(False)
@@ -331,6 +347,28 @@ class _LatexBlockView(Gtk.Frame):
 def _three_module_uri() -> str:
     bundled = Path(__file__).with_name("three.module.min.js")
     return bundled.resolve().as_uri()
+
+
+def _build_toc(blocks: Sequence[TextBlock]) -> str:
+    headings = []
+    for block in blocks:
+        if isinstance(block, TextBlock) and block.kind in {"title", "h1", "h2", "h3"}:
+            text = block.text.strip().splitlines()[0] if block.text.strip() else ""
+            if text:
+                headings.append((block.kind, text))
+
+    if not headings:
+        return "Table of Contents\n\n(No headings yet)"
+
+    lines = ["Table of Contents", ""]
+    for kind, text in headings:
+        indent = ""
+        if kind == "h2":
+            indent = "  "
+        elif kind == "h3":
+            indent = "    "
+        lines.append(f"{indent}- {text}")
+    return "\n".join(lines)
 
 
 def _apply_block_padding(widget: Gtk.Widget, padding: int = 12) -> None:

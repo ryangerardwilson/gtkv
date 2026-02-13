@@ -10,11 +10,29 @@ from block_registry import get_block_capabilities
 from three_template import default_three_template
 
 
-def insert_text_block(state: AppState) -> bool:
+def insert_text_block(state: AppState, kind: str = "body") -> bool:
     if state.document is None or state.view is None:
         return False
     insert_at = state.view.get_selected_index()
-    state.document.insert_block_after(insert_at, TextBlock("# New text block\n"))
+    placeholder = "New text block"
+    if kind == "title":
+        placeholder = "Title"
+    elif kind == "h1":
+        placeholder = "Heading1"
+    elif kind == "h2":
+        placeholder = "Heading2"
+    elif kind == "h3":
+        placeholder = "Heading3"
+    state.document.insert_block_after(insert_at, TextBlock(placeholder, kind=kind))
+    state.view.set_document(state.document)
+    return True
+
+
+def insert_toc_block(state: AppState) -> bool:
+    if state.document is None or state.view is None:
+        return False
+    insert_at = state.view.get_selected_index()
+    state.document.insert_block_after(insert_at, TextBlock("", kind="toc"))
     state.view.set_document(state.document)
     return True
 

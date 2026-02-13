@@ -15,7 +15,37 @@ window {
 .block-text textview {
   background: transparent;
   color: #d7d7d7;
+  font-size: 12px;
+}
+
+.block-text-title textview {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: #e6e6e6;
+}
+
+.block-text-h1 textview {
+  font-size: 18px;
+  font-weight: 600;
+  color: #dedede;
+}
+
+.block-text-h2 textview {
+  font-size: 15px;
+  font-weight: 600;
+  color: #d9d9d9;
+}
+
+.block-text-h3 textview {
+  font-size: 13px;
+  font-weight: 600;
+  color: #d4d4d4;
+}
+
+.block-text-toc textview {
   font-size: 11px;
+  color: #bfbfbf;
 }
 
 .block-image {

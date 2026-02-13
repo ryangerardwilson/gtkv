@@ -6,6 +6,7 @@ import argparse
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Sequence
 
@@ -13,7 +14,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Gdk", "4.0")
-from gi.repository import Gdk, Gtk  # type: ignore[attr-defined]
+from gi.repository import Gdk, Gtk  # type: ignore[import-not-found, attr-defined]
 
 import actions
 import config
@@ -47,6 +48,9 @@ class Orchestrator:
     def __init__(self) -> None:
         self._state = AppState()
         self._python_path: str | None = None
+        self._leader_active = False
+        self._leader_buffer = ""
+        self._leader_start = 0.0
 
     def run(self, argv: Sequence[str] | None = None) -> int:
         args = list(sys.argv[1:] if argv is None else argv)
@@ -103,17 +107,9 @@ class Orchestrator:
         return self._handle_doc_keys(keyval, state)
 
     def _handle_doc_keys(self, keyval, state) -> bool:
+        if self._handle_leader_keys(keyval, state):
+            return True
         if state & Gdk.ModifierType.CONTROL_MASK:
-            if keyval in (ord("v"), ord("V")):
-                return actions.insert_text_block(self._state)
-            if keyval in (ord("i"), ord("I")):
-                return False
-            if keyval == ord("3"):
-                return self._insert_three_block()
-            if keyval in (ord("p"), ord("P")):
-                return self._insert_python_image_block()
-            if keyval in (ord("l"), ord("L")):
-                return self._insert_latex_block()
             if keyval in (ord("s"), ord("S")):
                 return self._save_document()
 
@@ -144,6 +140,58 @@ class Orchestrator:
 
         self._state.last_doc_key = None
         return False
+
+    def _handle_leader_keys(self, keyval, state) -> bool:
+        if state & Gdk.ModifierType.CONTROL_MASK:
+            return False
+        if keyval == ord(",") and not self._leader_active:
+            self._leader_active = True
+            self._leader_buffer = ""
+            self._leader_start = time.monotonic()
+            return True
+        if not self._leader_active:
+            return False
+        if time.monotonic() - self._leader_start > 2.0:
+            self._leader_active = False
+            self._leader_buffer = ""
+            return False
+        if keyval == Gdk.KEY_Escape:
+            self._leader_active = False
+            self._leader_buffer = ""
+            return True
+        if 32 <= keyval <= 126:
+            self._leader_buffer += chr(keyval)
+        else:
+            return True
+
+        if self._leader_buffer == "js":
+            self._leader_active = False
+            return self._insert_three_block()
+        if self._leader_buffer == "py":
+            self._leader_active = False
+            return self._insert_python_image_block()
+        if self._leader_buffer == "ltx":
+            self._leader_active = False
+            return self._insert_latex_block()
+        if self._leader_buffer == "ht":
+            self._leader_active = False
+            return actions.insert_text_block(self._state, kind="title")
+        if self._leader_buffer == "h1":
+            self._leader_active = False
+            return actions.insert_text_block(self._state, kind="h1")
+        if self._leader_buffer == "h2":
+            self._leader_active = False
+            return actions.insert_text_block(self._state, kind="h2")
+        if self._leader_buffer == "h3":
+            self._leader_active = False
+            return actions.insert_text_block(self._state, kind="h3")
+        if self._leader_buffer == "p":
+            self._leader_active = False
+            return actions.insert_text_block(self._state, kind="body")
+        if self._leader_buffer == "toc":
+            self._leader_active = False
+            return actions.insert_toc_block(self._state)
+        return True
 
     def _open_selected_block_editor(self) -> bool:
         if self._state.active_editor is not None:
