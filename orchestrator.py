@@ -130,6 +130,13 @@ class Orchestrator:
         if state & Gdk.ModifierType.CONTROL_MASK:
             if keyval in (ord("s"), ord("S")):
                 return self._save_document()
+            if keyval in (ord("t"), ord("T")):
+                if self._save_document():
+                    self._quit()
+                return True
+            if keyval in (ord("x"), ord("X")):
+                self._quit()
+                return True
 
         if keyval in (ord("j"), ord("J"), Gdk.KEY_Down):
             actions.move_selection(self._state, 1)
@@ -155,6 +162,10 @@ class Orchestrator:
 
         if keyval in (Gdk.KEY_Return, Gdk.KEY_KP_Enter):
             return self._open_selected_block_editor()
+
+        if keyval in (ord("q"), ord("Q")):
+            self._quit()
+            return True
 
         self._state.last_doc_key = None
         return False
@@ -213,6 +224,13 @@ class Orchestrator:
             self._leader_active = False
             return actions.insert_toc_block(self._state)
         return True
+
+    def _quit(self) -> None:
+        app = Gtk.Application.get_default()
+        if app is not None:
+            app.quit()
+        else:
+            raise SystemExit(0)
 
     def _open_selected_block_editor(self) -> bool:
         if self._state.active_editor is not None:

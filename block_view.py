@@ -203,6 +203,7 @@ class BlockEditorView(Gtk.ScrolledWindow):
             "  j/k        move selection",
             "  g/G        first/last block",
             "  Enter      edit selected block",
+            "  q          quit without saving",
             "",
             "Blocks",
             "  ,n         normal text",
@@ -216,6 +217,8 @@ class BlockEditorView(Gtk.ScrolledWindow):
             "",
             "Other",
             "  Ctrl+S     save",
+            "  Ctrl+T     save and exit",
+            "  Ctrl+X     exit without saving",
             "  ?          toggle this help",
         ]
         body = Gtk.Label(label="\n".join(lines))

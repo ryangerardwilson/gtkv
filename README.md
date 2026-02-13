@@ -69,6 +69,8 @@ python main.py
 - `Enter` — open the selected text or code block in Vim.
 - Exit Vim — refreshes the block content in GTK.
 - `Ctrl+S` — save the current document.
+- `Ctrl+T` — save and exit.
+- `q` / `Ctrl+X` — exit without saving.
 - `-v` — print installed version.
 - `-u` — upgrade to the latest release.
 - `-e output.html doc.docv` — export a document to HTML.
