@@ -67,6 +67,8 @@ python main.py
 - `,map` — insert a map block (Leaflet JS).
 - `j/k` — move between blocks.
 - `Ctrl+j/k` — move the selected block up/down.
+- `dd` — delete the selected block.
+- `p` — paste the last deleted block after the selection.
 - `Enter` — open the selected text or code block in Vim.
 - Exit Vim — refreshes the block content in GTK.
 - `Ctrl+S` — save the current document.
