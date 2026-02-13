@@ -57,6 +57,8 @@ class Orchestrator:
         self._leader_start = 0.0
         self._delete_pending = False
         self._delete_start = 0.0
+        self._yank_pending = False
+        self._yank_start = 0.0
         self._demo = False
 
     def run(self, argv: Sequence[str] | None = None) -> int:
@@ -126,6 +128,8 @@ class Orchestrator:
 
     def _handle_doc_keys(self, keyval, state) -> bool:
         if self._handle_delete_keys(keyval, state):
+            return True
+        if self._handle_yank_keys(keyval, state):
             return True
         if self._handle_leader_keys(keyval, state):
             return True
@@ -229,6 +233,34 @@ class Orchestrator:
 
         if self._delete_pending:
             self._delete_pending = False
+        return False
+
+    def _handle_yank_keys(self, keyval, state) -> bool:
+        if state & Gdk.ModifierType.CONTROL_MASK:
+            if self._yank_pending:
+                self._yank_pending = False
+            return False
+
+        now = time.monotonic()
+        if self._yank_pending and now - self._yank_start > 1.25:
+            self._yank_pending = False
+
+        if keyval in (ord("y"), ord("Y")):
+            if not self._yank_pending:
+                self._yank_pending = True
+                self._yank_start = now
+                return True
+            self._yank_pending = False
+            yanked = actions.yank_selected_block(self._state)
+            if yanked is None:
+                self._show_status("Nothing to yank", "error")
+                return True
+            self._state.clipboard_block = yanked
+            self._show_status("Yanked block", "success")
+            return True
+
+        if self._yank_pending:
+            self._yank_pending = False
         return False
 
     def _handle_leader_keys(self, keyval, state) -> bool:

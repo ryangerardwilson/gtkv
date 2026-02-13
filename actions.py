@@ -159,6 +159,19 @@ def paste_after_selected(state: AppState, block: Block) -> bool:
     return True
 
 
+def yank_selected_block(state: AppState) -> Block | None:
+    if state.document is None or state.view is None:
+        return None
+    if not state.document.blocks:
+        return None
+    index = state.view.get_selected_index()
+    try:
+        block = state.document.blocks[index]
+    except IndexError:
+        return None
+    return copy.deepcopy(block)
+
+
 def select_first(state: AppState) -> bool:
     if state.view is None:
         return False
