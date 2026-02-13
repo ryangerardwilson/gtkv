@@ -74,6 +74,18 @@ python main.py
 - `-u` — upgrade to the latest release.
 - `-h` — show CLI help.
 
+### Leader commands
+
+Leader is `,` followed by a short token:
+
+- `,p` paragraph
+- `,ht` title
+- `,h1` / `,h2` / `,h3` headings
+- `,toc` table of contents
+- `,js` Three.js block
+- `,py` Python render block
+- `,ltx` LaTeX block
+
 ### Bash completion
 
 The installer drops a completion script into
@@ -91,6 +103,7 @@ The installer drops a completion script into
 - Python render blocks execute via a configured Python path and must write to `__gtkv__.renderer`.
 - Python render output is rendered at runtime (not embedded).
 - LaTeX blocks render via KaTeX in a WebKit view with local assets.
+- Image blocks are not supported in the text `.docv` format.
 
 ---
 
@@ -149,6 +162,7 @@ Blocks are stored as plain text with block headers (SQLite is no longer used):
 ```
 # GTKV v2
 ::text
+kind: body
 My notes...
 
 ::three

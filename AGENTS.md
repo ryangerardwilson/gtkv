@@ -5,7 +5,7 @@ non-goals of the project, and why the current architecture exists.
 
 ## Goals
 - Preserve a Vim-first workflow by delegating editing to an external terminal Vim.
-- Render a block-based GTK4 UI where text blocks and image blocks never share a line.
+- Render a block-based GTK4 UI where each block owns its own rendering surface.
 - Keep the core GTK app focused on layout, navigation, and block orchestration.
 - Minimize internal editor logic and keep the codebase easy to refactor.
 - Persist documents as a text-based `.docv` file with block sources.
@@ -26,11 +26,20 @@ need to recreate Vim modes internally.
 - Keep the repo flat at the root; avoid deep package trees for core modules.
 - Use direct, single-purpose modules:
   - `main.py` for CLI + app startup
+  - `orchestrator.py` for app orchestration and key handling
+  - `actions.py` for block mutations
   - `block_model.py` for block data structures
+  - `block_registry.py` for block capabilities
   - `block_view.py` for GTK rendering + navigation
+  - `document_io.py` for persistence routing
+  - `persistence_text.py` for text `.docv` load/save
+  - `config.py` for user config (Python path)
+  - `py_runner.py` for Python render execution
+  - `latex_template.py` for KaTeX HTML boilerplate
   - `style.css` for UI styling
   - `three_template.py` for 3D block HTML boilerplate
   - `three.module.min.js` for bundled Three.js
+  - `katex.min.js`, `katex.min.css`, `fonts/` for LaTeX rendering
   - `completions_gtkv.bash` for shell completion
 
 ## Release + packaging workflow
@@ -63,6 +72,9 @@ Renders the document as GTK blocks and tracks selection/navigation.
 
 ### `persistence_text.py`
 Text-based `.docv` persistence (git-friendly).
+
+### `py_runner.py`
+Runs Python render blocks and returns SVG output.
 
 ### `style.css`
 Visual styling for the block UI.
