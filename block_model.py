@@ -160,7 +160,7 @@ class BlockDocument:
 def sample_document() -> BlockDocument:
     blocks: List[Block] = [
         TextBlock(
-            "Title",
+            "Documentation Title",
             kind="title",
         )
     ]
@@ -168,33 +168,73 @@ def sample_document() -> BlockDocument:
     blocks.extend(
         [
             TextBlock(
-                "Heading1",
+                "Navigation",
                 kind="h1",
             ),
             TextBlock(
-                "Enter opens a temp file in Vim inside your terminal.\n"
-                "Exit Vim to refresh the block content.",
+                "Use j/k to move between blocks.\n"
+                "Press Enter to edit the selected block in Vim.\n"
+                "Exit Vim to refresh the block content.\n"
+                "Press ? to show the shortcuts panel.",
                 kind="body",
             ),
             TextBlock(
-                "Heading2",
+                "Heading 1",
+                kind="h1",
+            ),
+            TextBlock(
+                "Heading 1 is for top-level sections.\n"
+                "Use it to structure the document into major parts.",
+                kind="body",
+            ),
+            TextBlock(
+                "Heading 2",
                 kind="h2",
             ),
             TextBlock(
-                "Python blocks render to SVG via __gtkv__.renderer.\n"
-                "They are rendered at runtime for export.",
+                "You can structure documents with three heading levels.\n"
+                "Use ,h1, ,h2, and ,h3 for hierarchy.",
                 kind="body",
             ),
-            PythonImageBlock(
-                "import matplotlib.pyplot as plt\n"
-                "\n"
-                "fig, ax = plt.subplots()\n"
-                "ax.plot([0, 1, 2], [0, 1, 0.5])\n"
-                'ax.set_title("Sample plot")\n'
-                'fig.savefig(__gtkv__.renderer, format="svg", dpi=200, transparent=True, bbox_inches="tight")\n',
-                format="svg",
+            TextBlock(
+                "Heading 3",
+                kind="h3",
+            ),
+            TextBlock(
+                "Heading 3 is useful for fine-grained sections.\n"
+                "Use it sparingly for subtopics.",
+                kind="body",
+            ),
+            TextBlock(
+                "Three.js blocks",
+                kind="h1",
+            ),
+            TextBlock(
+                "Three.js blocks are JS modules with THREE, scene, camera,\n"
+                "renderer, and canvas pre-wired.\n"
+                "Use them for real-time 3D scenes.",
+                kind="body",
+            ),
+            ThreeBlock(default_three_template()),
+            TextBlock(
+                "LaTeX blocks",
+                kind="h1",
+            ),
+            TextBlock(
+                "LaTeX blocks render with KaTeX in a WebKit view.\n"
+                "Edit the LaTeX source directly.",
+                kind="body",
             ),
             LatexBlock(r"\int_0^\infty e^{-x^2} dx = \frac{\sqrt{\pi}}{2}"),
+            TextBlock(
+                "Map blocks",
+                kind="h1",
+            ),
+            TextBlock(
+                "Map blocks run Leaflet JS with L, map, and tileLayer globals.\n"
+                "Use them to plot points, shapes, and paths on a dark basemap.",
+                kind="body",
+            ),
             MapBlock(
                 "// Leaflet globals: L, map, tileLayer\n"
                 "const points = [\n"
@@ -214,7 +254,25 @@ def sample_document() -> BlockDocument:
                 "map.fitBounds(bounds.pad(0.2));\n"
             ),
             TextBlock(
-                "Heading3",
+                "Python render blocks",
+                kind="h1",
+            ),
+            TextBlock(
+                "Python blocks render to SVG via __gtkv__.renderer.\n"
+                "They are rendered at runtime for export.",
+                kind="body",
+            ),
+            PythonImageBlock(
+                "import matplotlib.pyplot as plt\n"
+                "\n"
+                "fig, ax = plt.subplots()\n"
+                "ax.plot([0, 1, 2], [0, 1, 0.5])\n"
+                'ax.set_title("Sample plot")\n'
+                'fig.savefig(__gtkv__.renderer, format="svg", dpi=200, transparent=True, bbox_inches="tight")\n',
+                format="svg",
+            ),
+            TextBlock(
+                "Notes",
                 kind="h3",
             ),
             TextBlock(
@@ -222,7 +280,6 @@ def sample_document() -> BlockDocument:
                 "- Vim runs externally; GTK stays focused on layout.",
                 kind="body",
             ),
-            ThreeBlock(default_three_template()),
         ]
     )
 
