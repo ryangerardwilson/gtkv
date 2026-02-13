@@ -89,6 +89,7 @@ class BlockEditorView(Gtk.ScrolledWindow):
         self._column.queue_resize()
         GLib.idle_add(self._column.queue_resize)
 
+
     def move_selection(self, delta: int) -> None:
         if not self._block_widgets:
             return
@@ -200,6 +201,10 @@ class _ThreeBlockView(Gtk.Frame):
         self.add_css_class("block")
         self.add_css_class("block-three")
 
+        self.view = None
+        self._html = None
+        self._box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        _apply_block_padding(self._box)
         if WebKit is None:
             label = Gtk.Label(label="WebKitGTK not available for 3D blocks")
             _apply_block_padding(label)
@@ -215,8 +220,19 @@ class _ThreeBlockView(Gtk.Frame):
         source = render_three_html(source).replace(
             "__GTKV_THREE_SRC__", _three_module_uri()
         )
+        self._html = source
+        self._build_view()
+        self.set_child(self._box)
 
-        view = WebKit.WebView()
+    def reload_html(self) -> None:
+        if self.view is None or self._html is None:
+            return
+        self.view.load_html(self._html, "file:///")
+
+    def _build_view(self) -> None:
+        if WebKit is None:
+            return
+        view = WebKit.WebView()  # type: ignore[union-attr]
         settings = view.get_settings()
         if settings is not None:
             if hasattr(settings, "set_enable_javascript"):
@@ -239,11 +255,9 @@ class _ThreeBlockView(Gtk.Frame):
         view.set_vexpand(False)
         view.set_hexpand(True)
         view.set_size_request(-1, 300)
-        view.load_html(source, "file:///")
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        _apply_block_padding(box)
-        box.append(view)
-        self.set_child(box)
+        view.load_html(self._html, "file:///")
+        self.view = view
+        self._box.append(view)
 
 
 class _PyImageBlockView(Gtk.Frame):

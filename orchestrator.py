@@ -95,6 +95,7 @@ class Orchestrator:
         self._state.view = view
         self._render_python_images_on_start()
 
+
         controller = Gtk.EventControllerKey()
         controller.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
         controller.connect("key-pressed", self.on_key_pressed)
@@ -102,6 +103,7 @@ class Orchestrator:
 
         window.set_child(view)
         window.present()
+
 
     def on_key_pressed(self, _controller, keyval, _keycode, state) -> bool:
         if self._state.document is None or self._state.view is None:
