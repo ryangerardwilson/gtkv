@@ -135,6 +135,27 @@ class BlockEditorView(Gtk.ScrolledWindow):
     def get_selected_index(self) -> int:
         return self._selected_index
 
+    def set_selected_index(self, index: int) -> None:
+        if not self._block_widgets:
+            return
+        self._selected_index = max(0, min(index, len(self._block_widgets) - 1))
+        self._refresh_selection()
+        self._scroll_to_selected()
+
+    def move_widget(self, from_index: int, to_index: int) -> None:
+        if not self._block_widgets:
+            return
+        if from_index < 0 or to_index < 0:
+            return
+        if from_index >= len(self._block_widgets) or to_index >= len(self._block_widgets):
+            return
+        if from_index == to_index:
+            return
+        widget = self._block_widgets.pop(from_index)
+        self._block_widgets.insert(to_index, widget)
+        self._column.remove(widget)
+        self._column.insert_child_after(widget, self._block_widgets[to_index - 1] if to_index > 0 else None)
+
     def clear_selection(self) -> None:
         for widget in self._block_widgets:
             widget.remove_css_class("block-selected")

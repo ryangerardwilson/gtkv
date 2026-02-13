@@ -123,10 +123,8 @@ def move_block(state: AppState, delta: int) -> bool:
     target = index + delta
     if not state.document.move_block(index, target):
         return False
-    state.view.set_document(state.document)
-    state.view._selected_index = max(0, min(target, len(state.document.blocks) - 1))
-    state.view.refresh_selection()
-    state.view._scroll_to_selected()
+    state.view.move_widget(index, target)
+    state.view.set_selected_index(target)
     return True
 
 
