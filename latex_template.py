@@ -14,7 +14,7 @@ def render_latex_html(source: str) -> str:
         "  <head>\n"
         "    <meta charset=\"utf-8\" />\n"
         f"    <link rel=\"stylesheet\" href=\"{css_uri}\" />\n"
-        "    <style>html, body { margin: 0; background: transparent; color: #d0d0d0; }</style>\n"
+        "    <style>html, body { margin: 0; background: transparent; color: #d0d0d0; overflow: hidden; }</style>\n"
         "  </head>\n"
         "  <body>\n"
         "    <div id=\"gtkv-latex\" style=\"padding: 12px;\"></div>\n"
