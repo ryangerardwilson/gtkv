@@ -37,7 +37,7 @@ class BlockEditorView(Gtk.ScrolledWindow):
         self._block_widgets: list[Gtk.Widget] = []
         self._selected_index = 0
 
-        self._column = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        self._column = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         self._column.set_margin_top(24)
         self._column.set_margin_bottom(24)
         self._column.set_margin_start(24)
