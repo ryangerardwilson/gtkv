@@ -35,6 +35,7 @@ need to recreate Vim modes internally.
   - `persistence_text.py` for text `.docv` load/save
   - `config.py` for user config (Python path)
   - `py_runner.py` for Python render execution
+  - `export_html.py` for HTML export
   - `latex_template.py` for KaTeX HTML boilerplate
   - `style.css` for UI styling
   - `three_template.py` for 3D block HTML boilerplate
@@ -76,6 +77,9 @@ Text-based `.docv` persistence (git-friendly).
 
 ### `py_runner.py`
 Runs Python render blocks and returns SVG output.
+
+### `export_html.py`
+Exports `.docv` files to a dark HTML page with CDN assets.
 
 ### `style.css`
 Visual styling for the block UI.

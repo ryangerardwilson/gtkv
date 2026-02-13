@@ -105,6 +105,7 @@ The installer drops a completion script into
 - Python render output is rendered at runtime (not embedded).
 - LaTeX blocks render via KaTeX in a WebKit view with local assets.
 - Image blocks are not supported in the text `.docv` format.
+- HTML export uses CDN assets for Three.js and KaTeX, and embeds Python renders as base64 SVG.
 
 ---
 
@@ -176,6 +177,18 @@ format: svg
 ::latex
 \int_0^\infty e^{-x^2} dx = \frac{\sqrt{\pi}}{2}
 ```
+
+### HTML export
+
+Export a document to a self-contained HTML page with a dark theme:
+
+```bash
+gtkv -e output.html doc.docv
+```
+
+- Three.js and KaTeX load from CDN to keep the HTML lean.
+- Python renders are executed on export and embedded as base64 SVG.
+- The exported page supports `j/k` scrolling.
 
 ---
 
