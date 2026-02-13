@@ -16,7 +16,7 @@ class BlockCapabilities:
 
 _BLOCK_CAPABILITIES: dict[type, BlockCapabilities] = {
     TextBlock: BlockCapabilities(editable=True, editor_suffix=".txt", kind="text"),
-    ThreeBlock: BlockCapabilities(editable=True, editor_suffix=".html", kind="three"),
+    ThreeBlock: BlockCapabilities(editable=True, editor_suffix=".js", kind="three"),
     PythonImageBlock: BlockCapabilities(
         editable=True, editor_suffix=".py", kind="pyimage"
     ),

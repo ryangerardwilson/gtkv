@@ -59,7 +59,7 @@ python main.py
 - `gtkv` — start the editor.
 - `gtkv doc.docv` — open an existing document.
 - `Ctrl+V` — append a new text block.
-- `Ctrl+3` — insert a 3D block and edit its Three.js HTML in Vim.
+- `Ctrl+3` — insert a 3D block and edit its Three.js module JS in Vim.
 - `Ctrl+P` — insert a Python render block (SVG output).
 - `Ctrl+L` — insert a LaTeX block rendered with KaTeX.
 - `j/k` — move between blocks.
@@ -83,7 +83,7 @@ The installer drops a completion script into
 - Blocks are separate; there is no inline mixing.
 - Vim runs externally in your terminal; GTK stays focused on layout.
 - Documents are stored as text `.docv` files suitable for Git diffing.
-- 3D blocks store their HTML/JS source inside the `.docv` file.
+- 3D blocks store their JS source inside the `.docv` file.
 - Python render blocks execute via a configured Python path and must write to `__gtkv__.renderer`.
 - Python render output is rendered at runtime (not embedded).
 - LaTeX blocks render via KaTeX in a WebKit view with local assets.

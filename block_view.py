@@ -23,6 +23,7 @@ except Exception:
 
 from block_model import BlockDocument, LatexBlock, PythonImageBlock, TextBlock, ThreeBlock
 from latex_template import render_latex_html
+from three_template import render_three_html
 
 
 class BlockEditorView(Gtk.ScrolledWindow):
@@ -182,7 +183,9 @@ class _ThreeBlockView(Gtk.Frame):
             self.set_child(label)
             return
 
-        source = source.replace("__GTKV_THREE_SRC__", _three_module_uri())
+        source = render_three_html(source).replace(
+            "__GTKV_THREE_SRC__", _three_module_uri()
+        )
 
         view = WebKit.WebView()
         settings = view.get_settings()
