@@ -14,7 +14,7 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Gdk", "4.0")
-from gi.repository import Gdk, Gtk  # type: ignore[import-not-found, attr-defined]
+from gi.repository import Gdk, GLib, Gtk  # type: ignore[import-not-found, attr-defined]
 
 import actions
 import config
@@ -275,9 +275,15 @@ class Orchestrator:
         actions.update_block_from_editor(self._state, index, kind, updated_text)
         if kind == "pyimage":
             self._render_python_image(index)
+            return
+        view = self._state.view
+        if view is None:
+            return
+        view.reload_media_at(index)
 
     def _clear_editor(self) -> None:
         self._state.active_editor = None
+
 
     def _insert_three_block(self) -> bool:
         if not actions.insert_three_block(self._state):

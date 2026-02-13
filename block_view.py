@@ -135,6 +135,18 @@ class BlockEditorView(Gtk.ScrolledWindow):
     def get_selected_index(self) -> int:
         return self._selected_index
 
+    def get_scroll_position(self) -> float:
+        vadjustment = self.get_vadjustment()
+        if vadjustment is None:
+            return 0.0
+        return vadjustment.get_value()
+
+    def set_scroll_position(self, value: float) -> None:
+        vadjustment = self.get_vadjustment()
+        if vadjustment is None:
+            return
+        vadjustment.set_value(max(0.0, value))
+
     def reload_media_at(self, index: int) -> bool:
         if not self._block_widgets:
             return False
@@ -149,12 +161,27 @@ class BlockEditorView(Gtk.ScrolledWindow):
                 return False
         return False
 
-    def set_selected_index(self, index: int) -> None:
+    def set_selected_index(self, index: int, scroll: bool = True) -> None:
         if not self._block_widgets:
             return
         self._selected_index = max(0, min(index, len(self._block_widgets) - 1))
         self._refresh_selection()
-        self._scroll_to_selected()
+        if scroll:
+            self._scroll_to_selected()
+
+    def center_on_index(self, index: int) -> None:
+        if not self._block_widgets:
+            return
+        if index < 0 or index >= len(self._block_widgets):
+            return
+        widget = self._block_widgets[index]
+        allocation = widget.get_allocation()
+        vadjustment = self.get_vadjustment()
+        if vadjustment is None:
+            return
+        page = vadjustment.get_page_size()
+        target = allocation.y + allocation.height / 2 - page / 2
+        vadjustment.set_value(max(0.0, target))
 
     def move_widget(self, from_index: int, to_index: int) -> None:
         if not self._block_widgets:

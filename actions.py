@@ -188,5 +188,4 @@ def update_block_from_editor(
         state.document.set_map_block(index, updated_text)
     else:
         state.document.set_text_block(index, updated_text)
-    state.view.set_document(state.document)
     return True
