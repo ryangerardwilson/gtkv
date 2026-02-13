@@ -17,7 +17,7 @@ def render_latex_html(source: str) -> str:
         "    <style>html, body { margin: 0; background: transparent; color: #d0d0d0; overflow: hidden; }</style>\n"
         "  </head>\n"
         "  <body>\n"
-        "    <div id=\"gtkv-latex\" style=\"padding: 12px;\"></div>\n"
+        "    <div id=\"gtkv-latex\" style=\"padding: 1px 12px 1px 10px;\"></div>\n"
         f"    <script src=\"{js_uri}\"></script>\n"
         "    <script>\n"
         f"      const latex = {latex};\n"
