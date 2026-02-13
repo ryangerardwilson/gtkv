@@ -260,17 +260,6 @@ class Orchestrator:
         )
         return True
 
-    def _rerender_selected_media(self) -> bool:
-        document = self._state.document
-        view = self._state.view
-        if document is None or view is None:
-            return False
-        selected = view.get_selected_index()
-        view.set_document(document)
-        view.set_selected_index(selected)
-        self._render_python_images_on_start()
-        return True
-
     def _handle_editor_update(self, index: int, kind: str, updated_text: str) -> None:
         actions.update_block_from_editor(self._state, index, kind, updated_text)
         if kind == "pyimage":

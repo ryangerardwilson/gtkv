@@ -68,7 +68,6 @@ python main.py
 - `j/k` — move between blocks.
 - `Ctrl+j/k` — move the selected block up/down.
 - `Enter` — open the selected text or code block in Vim.
-- `r` — re-render the selected media block.
 - Exit Vim — refreshes the block content in GTK.
 - `Ctrl+S` — save the current document.
 - `Ctrl+E` — export HTML alongside the document.

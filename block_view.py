@@ -54,15 +54,10 @@ class BlockEditorView(Gtk.ScrolledWindow):
         self._column.set_margin_end(24)
         self._column.set_valign(Gtk.Align.START)
 
-        self._overlay = Gtk.Overlay()
-        self._overlay.set_child(self._column)
-
-        self._help_overlay = self._build_help_overlay()
         self._help_visible = False
-        self._overlay.add_overlay(self._help_overlay)
-        self._help_overlay.set_visible(False)
+        self._help_panel = self._build_help_overlay()
 
-        self.set_child(self._overlay)
+        self.set_child(self._column)
 
     def set_document(self, document: BlockDocument) -> None:
         for child in list(self._column):
@@ -208,9 +203,12 @@ class BlockEditorView(Gtk.ScrolledWindow):
 
     def toggle_help(self) -> None:
         self._help_visible = not self._help_visible
-        self._help_overlay.set_visible(self._help_visible)
         if self._help_visible:
-            self._help_overlay.grab_focus()
+            self.clear_selection()
+            self.set_child(self._help_panel)
+            self._help_panel.grab_focus()
+        else:
+            self.set_child(self._column)
 
     def refresh_selection(self) -> None:
         self._refresh_selection()
@@ -272,7 +270,6 @@ class BlockEditorView(Gtk.ScrolledWindow):
             "  g/G        first/last block",
             "  Enter      edit selected block",
             "  q          quit without saving",
-            "  r          re-render media block",
             "",
             "Blocks",
             "  ,n         normal text",
@@ -294,7 +291,6 @@ class BlockEditorView(Gtk.ScrolledWindow):
         body = Gtk.Label(label="\n".join(lines))
         body.add_css_class("help-body")
         body.set_halign(Gtk.Align.START)
-        body.set_selectable(True)
         panel.append(body)
 
         overlay.append(panel)
