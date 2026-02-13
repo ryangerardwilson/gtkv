@@ -12,7 +12,7 @@ SQLite file. 3D blocks render with WebKitGTK using a bundled Three.js module.
 - GTK4 runtime libraries.
 - PyGObject + GObject Introspection (for running from source).
 - A terminal Vim (`nvim`, `vim`, or `vi`).
-- Optional: the `o` file picker for image insertion.
+- Optional: the `o` file picker for save path selection.
 - Optional: WebKitGTK for 3D blocks.
 - Optional: Python + Matplotlib for Python render blocks.
 - Optional: WebKitGTK for LaTeX blocks (bundled KaTeX assets).
@@ -59,7 +59,6 @@ python main.py
 - `gtkv` — start the editor.
 - `gtkv doc.docv` — open an existing document.
 - `Ctrl+V` — append a new text block.
-- `Ctrl+I` — insert an image block via the `o` picker.
 - `Ctrl+3` — insert a 3D block and edit its Three.js HTML in Vim.
 - `Ctrl+P` — insert a Python render block (SVG output).
 - `Ctrl+L` — insert a LaTeX block rendered with KaTeX.
@@ -70,7 +69,6 @@ python main.py
 - `-v` — print installed version.
 - `-u` — upgrade to the latest release.
 - `-h` — show CLI help.
-- `--image /path/to/image.png` — include an image in the sample document.
 
 ### Bash completion
 
@@ -82,13 +80,33 @@ The installer drops a completion script into
 
 ## Notes
 
-- Text and images are separate blocks; there is no inline mixing.
+- Blocks are separate; there is no inline mixing.
 - Vim runs externally in your terminal; GTK stays focused on layout.
-- Documents are stored as SQLite `.docv` files containing text blocks and image blobs.
+- Documents are stored as text `.docv` files suitable for Git diffing.
 - 3D blocks store their HTML/JS source inside the `.docv` file.
 - Python render blocks execute via a configured Python path and must write to `__gtkv__.renderer`.
-- Python render output is stored as SVG inside the `.docv` for future export.
+- Python render output is rendered at runtime (not embedded).
 - LaTeX blocks render via KaTeX in a WebKit view with local assets.
+
+### `.docv` text format
+
+Blocks are stored as plain text with block headers:
+
+```
+# GTKV v2
+::text
+My notes...
+
+::three
+<three.js html>
+
+::pyimage
+format: svg
+<python source>
+
+::latex
+\int_0^\infty e^{-x^2} dx = \frac{\sqrt{\pi}}{2}
+```
 
 ---
 

@@ -21,14 +21,7 @@ try:
 except Exception:
     WebKit = None
 
-from block_model import (
-    BlockDocument,
-    ImageBlock,
-    LatexBlock,
-    PythonImageBlock,
-    TextBlock,
-    ThreeBlock,
-)
+from block_model import BlockDocument, LatexBlock, PythonImageBlock, TextBlock, ThreeBlock
 from latex_template import render_latex_html
 
 
@@ -61,8 +54,6 @@ class BlockEditorView(Gtk.ScrolledWindow):
         for block in document.blocks:
             if isinstance(block, TextBlock):
                 widget = _TextBlockView(block.text)
-            elif isinstance(block, ImageBlock):
-                widget = _ImageBlockView(block.path, block.alt)
             elif isinstance(block, ThreeBlock):
                 widget = _ThreeBlockView(block.source)
             elif isinstance(block, PythonImageBlock):
@@ -171,25 +162,6 @@ class _TextBlockView(Gtk.Frame):
         buffer.set_text(text)
 
         self.set_child(self._text_view)
-
-
-class _ImageBlockView(Gtk.Frame):
-    def __init__(self, path: str, alt: str) -> None:
-        super().__init__()
-        self.add_css_class("block")
-        self.add_css_class("block-image")
-
-        if os.path.exists(path):
-            picture = Gtk.Picture.new_for_filename(path)
-            picture.set_can_shrink(False)
-            picture.set_content_fit(Gtk.ContentFit.CONTAIN)
-            _apply_block_padding(picture)
-            picture.set_valign(Gtk.Align.START)
-            self.set_child(picture)
-        else:
-            label = Gtk.Label(label=f"Missing image: {alt or path}")
-            _apply_block_padding(label)
-            self.set_child(label)
 
 
 class _ThreeBlockView(Gtk.Frame):

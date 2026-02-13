@@ -1,19 +1,11 @@
 from __future__ import annotations
 
 import hashlib
-import mimetypes
 import os
 import sqlite3
 from pathlib import Path
 
-from block_model import (
-    BlockDocument,
-    ImageBlock,
-    LatexBlock,
-    PythonImageBlock,
-    TextBlock,
-    ThreeBlock,
-)
+from block_model import BlockDocument, LatexBlock, PythonImageBlock, TextBlock, ThreeBlock
 
 
 SCHEMA_VERSION = 4
@@ -31,25 +23,6 @@ def load_document(path: Path) -> BlockDocument:
         ):
             if row["type"] == "text":
                 blocks.append(TextBlock(row["text"] or ""))
-                continue
-            if row["type"] == "image" and row["image_id"] is not None:
-                image_row = conn.execute(
-                    "SELECT id, mime, data, alt FROM images WHERE id = ?",
-                    (row["image_id"],),
-                ).fetchone()
-                if image_row is None:
-                    continue
-                cache_path = _materialize_image(
-                    path, image_row["id"], image_row["mime"], image_row["data"]
-                )
-                blocks.append(
-                    ImageBlock(
-                        cache_path,
-                        alt=image_row["alt"] or "",
-                        data=image_row["data"],
-                        mime=image_row["mime"],
-                    )
-                )
                 continue
             if row["type"] == "three":
                 blocks.append(ThreeBlock(row["text"] or ""))
@@ -93,20 +66,6 @@ def save_document(path: Path, document: BlockDocument) -> None:
                 conn.execute(
                     "INSERT INTO blocks (position, type, text) VALUES (?, 'text', ?)",
                     (position, block.text),
-                )
-            elif isinstance(block, ImageBlock):
-                image_bytes, mime = _resolve_image_payload(block)
-                if image_bytes is None or mime is None:
-                    position += 1
-                    continue
-                cursor = conn.execute(
-                    "INSERT INTO images (mime, data, alt) VALUES (?, ?, ?)",
-                    (mime, image_bytes, block.alt),
-                )
-                image_id = cursor.lastrowid
-                conn.execute(
-                    "INSERT INTO blocks (position, type, image_id) VALUES (?, 'image', ?)",
-                    (position, image_id),
                 )
             elif isinstance(block, ThreeBlock):
                 conn.execute(
@@ -175,7 +134,7 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
         CREATE TABLE IF NOT EXISTS blocks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             position INTEGER NOT NULL,
-            type TEXT NOT NULL CHECK(type IN ('text','image','three','pyimage','latex')),
+            type TEXT NOT NULL CHECK(type IN ('text','three','pyimage','latex')),
             text TEXT,
             image_id INTEGER,
             format TEXT,
@@ -276,7 +235,7 @@ def _migrate_schema(conn: sqlite3.Connection, current_version: int) -> None:
             CREATE TABLE blocks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 position INTEGER NOT NULL,
-                type TEXT NOT NULL CHECK(type IN ('text','image','three','pyimage','latex')),
+                type TEXT NOT NULL CHECK(type IN ('text','three','pyimage','latex')),
                 text TEXT,
                 image_id INTEGER,
                 format TEXT,
@@ -294,35 +253,12 @@ def _migrate_schema(conn: sqlite3.Connection, current_version: int) -> None:
             INSERT INTO blocks (id, position, type, text, image_id, format, rendered_data, rendered_hash, error, created_at, updated_at)
             SELECT id, position, type, text, image_id, format, rendered_data, rendered_hash, error, created_at, updated_at
             FROM blocks_old
+            WHERE type IN ('text','three','pyimage','latex')
             """
         )
         conn.execute("DROP TABLE blocks_old")
 
     _upsert_meta(conn, "schema_version", str(SCHEMA_VERSION))
-
-
-def _resolve_image_payload(block: ImageBlock) -> tuple[bytes | None, str | None]:
-    if block.data and block.mime:
-        return block.data, block.mime
-    if block.path and os.path.exists(block.path):
-        try:
-            image_bytes = Path(block.path).read_bytes()
-        except OSError:
-            return None, None
-        mime, _ = mimetypes.guess_type(block.path)
-        return image_bytes, mime or "application/octet-stream"
-    return None, None
-
-
-def _materialize_image(doc_path: Path, image_id: int, mime: str, data: bytes) -> str:
-    cache_dir = _cache_root_for_document(doc_path)
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    extension = mimetypes.guess_extension(mime or "") or ".img"
-    filename = f"image-{image_id}{extension}"
-    image_path = cache_dir / filename
-    if not image_path.exists():
-        image_path.write_bytes(data)
-    return image_path.as_posix()
 
 
 def _materialize_pyimage(

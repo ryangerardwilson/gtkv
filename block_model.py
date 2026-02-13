@@ -13,14 +13,6 @@ class TextBlock:
 
 
 @dataclass(frozen=True)
-class ImageBlock:
-    path: str
-    alt: str = ""
-    data: bytes | None = None
-    mime: str | None = None
-
-
-@dataclass(frozen=True)
 class ThreeBlock:
     source: str
     title: str = ""
@@ -41,7 +33,7 @@ class LatexBlock:
     source: str
 
 
-Block = TextBlock | ImageBlock | ThreeBlock | PythonImageBlock | LatexBlock
+Block = TextBlock | ThreeBlock | PythonImageBlock | LatexBlock
 
 
 class BlockDocument:
@@ -143,17 +135,14 @@ class BlockDocument:
             self._dirty = True
 
 
-def sample_document(image_path: str | None) -> BlockDocument:
+def sample_document() -> BlockDocument:
     blocks: List[Block] = [
         TextBlock(
             "# GTKV block editor\n"
             "Navigate blocks with j/k, open a text block with Enter.\n"
-            "Text and images live in separate blocks.\n"
+            "Blocks are separate; no inline mixing.\n"
         )
     ]
-
-    if image_path:
-        blocks.append(ImageBlock(image_path, alt="Sample image"))
 
     blocks.extend(
         [
@@ -165,7 +154,7 @@ def sample_document(image_path: str | None) -> BlockDocument:
             TextBlock(
                 "# Python renders\n"
                 "Python blocks render to SVG via __gtkv__.renderer.\n"
-                "They are stored inside the .docv for export.\n"
+                "They are rendered at runtime for export.\n"
             ),
             PythonImageBlock(
                 "import matplotlib.pyplot as plt\n"
@@ -181,7 +170,7 @@ def sample_document(image_path: str | None) -> BlockDocument:
             ),
             TextBlock(
                 "# Notes\n"
-                "- Images are standalone blocks.\n"
+                "- No inline mixing; each block is its own unit.\n"
                 "- Vim runs externally; GTK stays focused on layout.\n"
             ),
             ThreeBlock(default_three_template()),

@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from app_state import AppState
-from block_model import ImageBlock, LatexBlock, PythonImageBlock, TextBlock, ThreeBlock
+from block_model import LatexBlock, PythonImageBlock, TextBlock, ThreeBlock
 from block_registry import get_block_capabilities
 from three_template import default_three_template
 
@@ -20,14 +20,7 @@ def insert_text_block(state: AppState) -> bool:
 
 
 def insert_image_block(state: AppState, path: Path) -> bool:
-    if state.document is None or state.view is None:
-        return False
-    insert_at = state.view.get_selected_index()
-    state.document.insert_block_after(
-        insert_at, ImageBlock(path.as_posix(), alt=path.name)
-    )
-    state.view.set_document(state.document)
-    return True
+    return False
 
 
 def insert_three_block(state: AppState) -> bool:

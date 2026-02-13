@@ -46,7 +46,6 @@ class BlockApp(Gtk.Application):
 class Orchestrator:
     def __init__(self) -> None:
         self._state = AppState()
-        self._image_path: str | None = None
         self._python_path: str | None = None
 
     def run(self, argv: Sequence[str] | None = None) -> int:
@@ -59,10 +58,6 @@ class Orchestrator:
             return _run_upgrade()
 
         document_path = Path(options.file).expanduser() if options.file else None
-        image_path = options.image or os.getenv("GTKV_IMAGE")
-        if image_path and not os.path.exists(image_path):
-            image_path = None
-        self._image_path = image_path
         self._python_path = config.get_python_path()
         if not self._python_path:
             self._python_path = _prompt_python_path_cli()
@@ -72,7 +67,7 @@ class Orchestrator:
         if document_path and document_path.exists():
             self._state.document = document_io.load(document_path)
         elif document_path:
-            self._state.document = sample_document(image_path)
+            self._state.document = sample_document()
             self._state.document.set_path(document_path)
 
         app = BlockApp(self)
@@ -85,7 +80,7 @@ class Orchestrator:
 
         document = self._state.document
         if document is None:
-            document = sample_document(self._image_path)
+            document = sample_document()
             self._state.document = document
 
         view: BlockEditorView = BlockEditorView()
@@ -112,7 +107,7 @@ class Orchestrator:
             if keyval in (ord("v"), ord("V")):
                 return actions.insert_text_block(self._state)
             if keyval in (ord("i"), ord("I")):
-                return self._begin_image_selector_o()
+                return False
             if keyval == ord("3"):
                 return self._insert_three_block()
             if keyval in (ord("p"), ord("P")):
@@ -198,17 +193,6 @@ class Orchestrator:
             document_io.save(document.path, document)
             return True
         return self._begin_save_selector_o()
-
-    def _begin_image_selector_o(self) -> bool:
-        if self._state.document is None or self._state.view is None:
-            return False
-
-        start_dir = _get_picker_start_dir()
-
-        def _on_pick(path: Path) -> None:
-            actions.insert_image_block(self._state, path)
-
-        return picker.begin_image_selector_o(start_dir, _on_pick)
 
     def _begin_save_selector_o(self) -> bool:
         document = self._state.document
@@ -306,7 +290,6 @@ def parse_args(argv: Sequence[str]) -> tuple[argparse.Namespace, list[str]]:
     )
     parser.add_argument("-v", "--version", action="store_true", help="Show version")
     parser.add_argument("-u", "--upgrade", action="store_true", help="Upgrade")
-    parser.add_argument("--image", help="Optional image to show in sample doc")
     parser.add_argument("file", nargs="?", help="Optional .docv document to open")
     if hasattr(parser, "parse_known_intermixed_args"):
         args, gtk_args = parser.parse_known_intermixed_args(argv)
