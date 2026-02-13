@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from app_state import AppState
-from block_model import ImageBlock, PythonImageBlock, TextBlock, ThreeBlock
+from block_model import ImageBlock, LatexBlock, PythonImageBlock, TextBlock, ThreeBlock
 from block_registry import get_block_capabilities
 from three_template import default_three_template
 
@@ -58,6 +58,17 @@ def insert_python_image_block(state: AppState) -> bool:
     return True
 
 
+def insert_latex_block(state: AppState) -> bool:
+    if state.document is None or state.view is None:
+        return False
+    insert_at = state.view.get_selected_index()
+    template = r"\int_0^\infty e^{-x^2} dx = \frac{\sqrt{\pi}}{2}"
+    state.document.insert_block_after(insert_at, LatexBlock(template))
+    state.view.set_document(state.document)
+    state.view.move_selection(1)
+    return True
+
+
 def move_selection(state: AppState, delta: int) -> bool:
     if state.view is None:
         return False
@@ -98,6 +109,8 @@ def get_selected_edit_payload(
         content = block.source
     elif isinstance(block, PythonImageBlock):
         content = block.source
+    elif isinstance(block, LatexBlock):
+        content = block.source
     else:
         return None
 
@@ -113,6 +126,8 @@ def update_block_from_editor(
         state.document.set_three_block(index, updated_text)
     elif kind == "pyimage":
         state.document.set_python_image_block(index, updated_text)
+    elif kind == "latex":
+        state.document.set_latex_block(index, updated_text)
     else:
         state.document.set_text_block(index, updated_text)
     state.view.set_document(state.document)

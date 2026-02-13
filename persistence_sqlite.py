@@ -6,10 +6,17 @@ import os
 import sqlite3
 from pathlib import Path
 
-from block_model import BlockDocument, ImageBlock, PythonImageBlock, TextBlock, ThreeBlock
+from block_model import (
+    BlockDocument,
+    ImageBlock,
+    LatexBlock,
+    PythonImageBlock,
+    TextBlock,
+    ThreeBlock,
+)
 
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 
 def load_document(path: Path) -> BlockDocument:
@@ -63,6 +70,8 @@ def load_document(path: Path) -> BlockDocument:
                         rendered_path=rendered_path,
                     )
                 )
+            if row["type"] == "latex":
+                blocks.append(LatexBlock(row["text"] or ""))
         doc = BlockDocument(blocks, path=path)
         doc.clear_dirty()
         return doc
@@ -121,6 +130,11 @@ def save_document(path: Path, document: BlockDocument) -> None:
                         block.last_error,
                     ),
                 )
+            elif isinstance(block, LatexBlock):
+                conn.execute(
+                    "INSERT INTO blocks (position, type, text) VALUES (?, 'latex', ?)",
+                    (position, block.source),
+                )
             position += 1
 
         _upsert_meta(conn, "schema_version", str(SCHEMA_VERSION))
@@ -161,7 +175,7 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
         CREATE TABLE IF NOT EXISTS blocks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             position INTEGER NOT NULL,
-            type TEXT NOT NULL CHECK(type IN ('text','image','three','pyimage')),
+            type TEXT NOT NULL CHECK(type IN ('text','image','three','pyimage','latex')),
             text TEXT,
             image_id INTEGER,
             format TEXT,
@@ -250,6 +264,35 @@ def _migrate_schema(conn: sqlite3.Connection, current_version: int) -> None:
             """
             INSERT INTO blocks (id, position, type, text, image_id, created_at, updated_at)
             SELECT id, position, type, text, image_id, created_at, updated_at
+            FROM blocks_old
+            """
+        )
+        conn.execute("DROP TABLE blocks_old")
+
+    if current_version < 4:
+        conn.execute("ALTER TABLE blocks RENAME TO blocks_old")
+        conn.execute(
+            """
+            CREATE TABLE blocks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                position INTEGER NOT NULL,
+                type TEXT NOT NULL CHECK(type IN ('text','image','three','pyimage','latex')),
+                text TEXT,
+                image_id INTEGER,
+                format TEXT,
+                rendered_data TEXT,
+                rendered_hash TEXT,
+                error TEXT,
+                created_at TEXT DEFAULT (datetime('now')),
+                updated_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY(image_id) REFERENCES images(id) ON DELETE SET NULL
+            )
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO blocks (id, position, type, text, image_id, format, rendered_data, rendered_hash, error, created_at, updated_at)
+            SELECT id, position, type, text, image_id, format, rendered_data, rendered_hash, error, created_at, updated_at
             FROM blocks_old
             """
         )

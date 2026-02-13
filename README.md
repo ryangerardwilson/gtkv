@@ -14,6 +14,8 @@ SQLite file. 3D blocks render with WebKitGTK using a bundled Three.js module.
 - A terminal Vim (`nvim`, `vim`, or `vi`).
 - Optional: the `o` file picker for image insertion.
 - Optional: WebKitGTK for 3D blocks.
+- Optional: Python + Matplotlib for Python render blocks.
+- Optional: WebKitGTK for LaTeX blocks (bundled KaTeX assets).
 - Bundled: `three.module.min.js` is included for 3D blocks.
 
 ## Installation
@@ -59,6 +61,8 @@ python main.py
 - `Ctrl+V` — append a new text block.
 - `Ctrl+I` — insert an image block via the `o` picker.
 - `Ctrl+3` — insert a 3D block and edit its Three.js HTML in Vim.
+- `Ctrl+P` — insert a Python render block (SVG output).
+- `Ctrl+L` — insert a LaTeX block rendered with KaTeX.
 - `j/k` — move between blocks.
 - `Enter` — open the selected text or 3D block in Vim.
 - Exit Vim — refreshes the block content in GTK.
@@ -82,6 +86,9 @@ The installer drops a completion script into
 - Vim runs externally in your terminal; GTK stays focused on layout.
 - Documents are stored as SQLite `.docv` files containing text blocks and image blobs.
 - 3D blocks store their HTML/JS source inside the `.docv` file.
+- Python render blocks execute via a configured Python path and must write to `__gtkv__.renderer`.
+- Python render output is stored as SVG inside the `.docv` for future export.
+- LaTeX blocks render via KaTeX in a WebKit view with local assets.
 
 ---
 

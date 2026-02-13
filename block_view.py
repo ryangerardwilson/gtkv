@@ -21,7 +21,15 @@ try:
 except Exception:
     WebKit = None
 
-from block_model import BlockDocument, ImageBlock, PythonImageBlock, TextBlock, ThreeBlock
+from block_model import (
+    BlockDocument,
+    ImageBlock,
+    LatexBlock,
+    PythonImageBlock,
+    TextBlock,
+    ThreeBlock,
+)
+from latex_template import render_latex_html
 
 
 class BlockEditorView(Gtk.ScrolledWindow):
@@ -59,6 +67,8 @@ class BlockEditorView(Gtk.ScrolledWindow):
                 widget = _ThreeBlockView(block.source)
             elif isinstance(block, PythonImageBlock):
                 widget = _PyImageBlockView(block)
+            elif isinstance(block, LatexBlock):
+                widget = _LatexBlockView(block.source)
             else:
                 continue
             self._block_widgets.append(widget)
@@ -282,6 +292,53 @@ class _PyImageBlockView(Gtk.Frame):
         label.set_margin_start(12)
         label.set_margin_end(12)
         self.set_child(label)
+
+
+class _LatexBlockView(Gtk.Frame):
+    def __init__(self, source: str) -> None:
+        super().__init__()
+        self.add_css_class("block")
+        self.add_css_class("block-three")
+
+        if WebKit is None:
+            label = Gtk.Label(label="WebKitGTK not available for LaTeX blocks")
+            label.set_margin_top(12)
+            label.set_margin_bottom(12)
+            label.set_margin_start(12)
+            label.set_margin_end(12)
+            self.set_child(label)
+            return
+
+        if not source.strip():
+            label = Gtk.Label(label="Empty LaTeX block")
+            label.set_margin_top(12)
+            label.set_margin_bottom(12)
+            label.set_margin_start(12)
+            label.set_margin_end(12)
+            self.set_child(label)
+            return
+
+        view = WebKit.WebView()
+        settings = view.get_settings()
+        if settings is not None:
+            if hasattr(settings, "set_enable_javascript"):
+                settings.set_enable_javascript(True)
+            if hasattr(settings, "set_allow_file_access_from_file_urls"):
+                settings.set_allow_file_access_from_file_urls(True)
+            if hasattr(settings, "set_allow_universal_access_from_file_urls"):
+                settings.set_allow_universal_access_from_file_urls(True)
+        background = Gdk.RGBA()
+        background.red = 0.0
+        background.green = 0.0
+        background.blue = 0.0
+        background.alpha = 0.0
+        if hasattr(view, "set_background_color"):
+            view.set_background_color(background)
+        view.set_vexpand(False)
+        view.set_hexpand(True)
+        view.set_size_request(-1, 240)
+        view.load_html(render_latex_html(source), "file:///")
+        self.set_child(view)
 
 
 def _three_module_uri() -> str:

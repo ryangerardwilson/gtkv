@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from block_model import ImageBlock, PythonImageBlock, TextBlock, ThreeBlock
+from block_model import ImageBlock, LatexBlock, PythonImageBlock, TextBlock, ThreeBlock
 
 
 @dataclass(frozen=True)
@@ -20,6 +20,7 @@ _BLOCK_CAPABILITIES: dict[type, BlockCapabilities] = {
     PythonImageBlock: BlockCapabilities(
         editable=True, editor_suffix=".py", kind="pyimage"
     ),
+    LatexBlock: BlockCapabilities(editable=True, editor_suffix=".tex", kind="latex"),
     ImageBlock: BlockCapabilities(editable=False, editor_suffix=None, kind=None),
 }
 

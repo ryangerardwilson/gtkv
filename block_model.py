@@ -36,7 +36,12 @@ class PythonImageBlock:
     rendered_path: str | None = None
 
 
-Block = TextBlock | ImageBlock | ThreeBlock | PythonImageBlock
+@dataclass(frozen=True)
+class LatexBlock:
+    source: str
+
+
+Block = TextBlock | ImageBlock | ThreeBlock | PythonImageBlock | LatexBlock
 
 
 class BlockDocument:
@@ -129,6 +134,14 @@ class BlockDocument:
             )
             self._dirty = True
 
+    def set_latex_block(self, index: int, source: str) -> None:
+        if index < 0 or index >= len(self._blocks):
+            return
+        block = self._blocks[index]
+        if isinstance(block, LatexBlock):
+            self._blocks[index] = LatexBlock(source)
+            self._dirty = True
+
 
 def sample_document(image_path: str | None) -> BlockDocument:
     blocks: List[Block] = [
@@ -148,6 +161,23 @@ def sample_document(image_path: str | None) -> BlockDocument:
                 "# Editing\n"
                 "Enter opens a temp file in Vim inside your terminal.\n"
                 "Exit Vim to refresh the block content.\n"
+            ),
+            TextBlock(
+                "# Python renders\n"
+                "Python blocks render to SVG via __gtkv__.renderer.\n"
+                "They are stored inside the .docv for export.\n"
+            ),
+            PythonImageBlock(
+                "import matplotlib.pyplot as plt\n"
+                "\n"
+                "fig, ax = plt.subplots()\n"
+                "ax.plot([0, 1, 2], [0, 1, 0.5])\n"
+                "ax.set_title(\"Sample plot\")\n"
+                "fig.savefig(__gtkv__.renderer, format=\"svg\", dpi=200, transparent=True, bbox_inches=\"tight\")\n",
+                format="svg",
+            ),
+            LatexBlock(
+                r"\int_0^\infty e^{-x^2} dx = \frac{\sqrt{\pi}}{2}"
             ),
             TextBlock(
                 "# Notes\n"

@@ -116,6 +116,8 @@ class Orchestrator:
                 return self._insert_three_block()
             if keyval in (ord("p"), ord("P")):
                 return self._insert_python_image_block()
+            if keyval in (ord("l"), ord("L")):
+                return self._insert_latex_block()
             if keyval in (ord("s"), ord("S")):
                 return self._save_document()
 
@@ -179,6 +181,11 @@ class Orchestrator:
 
     def _insert_python_image_block(self) -> bool:
         if not actions.insert_python_image_block(self._state):
+            return False
+        return self._open_selected_block_editor()
+
+    def _insert_latex_block(self) -> bool:
+        if not actions.insert_latex_block(self._state):
             return False
         return self._open_selected_block_editor()
 
