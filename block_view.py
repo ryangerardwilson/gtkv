@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 import hashlib
 import os
 from pathlib import Path
@@ -298,15 +297,10 @@ def _materialize_pyimage(block: PythonImageBlock) -> str | None:
     cache_dir.mkdir(parents=True, exist_ok=True)
     digest_source = block.rendered_hash or block.rendered_data
     digest = hashlib.sha256(digest_source.encode("utf-8")).hexdigest()[:16]
-    extension = ".svg" if block.format == "svg" else ".png"
+    extension = ".svg"
     image_path = cache_dir / f"pyimage-{digest}{extension}"
-    if image_path.exists():
-        return image_path.as_posix()
     try:
-        if extension == ".svg":
-            image_path.write_text(block.rendered_data, encoding="utf-8")
-        else:
-            image_path.write_bytes(base64.b64decode(block.rendered_data.encode("utf-8")))
+        image_path.write_text(block.rendered_data, encoding="utf-8")
     except (OSError, ValueError):
         return None
     return image_path.as_posix()

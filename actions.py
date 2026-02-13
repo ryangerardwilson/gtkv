@@ -48,9 +48,11 @@ def insert_python_image_block(state: AppState) -> bool:
         "import matplotlib.pyplot as plt\n\n"
         "fig, ax = plt.subplots()\n"
         "ax.plot([0, 1, 2], [0, 1, 0.5])\n"
-        "fig.savefig(__gtkv__.renderer, dpi=200, transparent=True, bbox_inches=\"tight\")\n"
+        "fig.savefig(__gtkv__.renderer, format=\"svg\", dpi=200, transparent=True, bbox_inches=\"tight\")\n"
     )
-    state.document.insert_block_after(insert_at, PythonImageBlock(template))
+    state.document.insert_block_after(
+        insert_at, PythonImageBlock(template, format="svg")
+    )
     state.view.set_document(state.document)
     state.view.move_selection(1)
     return True

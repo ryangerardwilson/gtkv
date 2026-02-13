@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 import hashlib
 import mimetypes
 import os
@@ -295,16 +294,12 @@ def _materialize_pyimage(
     cache_dir.mkdir(parents=True, exist_ok=True)
     digest_source = rendered_hash or rendered_data
     digest = hashlib.sha256(digest_source.encode("utf-8")).hexdigest()[:16]
-    extension = ".svg" if (render_format or "png") == "svg" else ".png"
+    extension = ".svg"
     image_path = cache_dir / f"pyimage-{digest}{extension}"
-    if not image_path.exists():
-        try:
-            if extension == ".svg":
-                image_path.write_text(rendered_data, encoding="utf-8")
-            else:
-                image_path.write_bytes(base64.b64decode(rendered_data.encode("utf-8")))
-        except (OSError, ValueError):
-            return None
+    try:
+        image_path.write_text(rendered_data, encoding="utf-8")
+    except (OSError, ValueError):
+        return None
     return image_path.as_posix()
 
 

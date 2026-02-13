@@ -29,7 +29,7 @@ class ThreeBlock:
 @dataclass(frozen=True)
 class PythonImageBlock:
     source: str
-    format: str = "png"
+    format: str = "svg"
     rendered_data: str | None = None
     rendered_hash: str | None = None
     last_error: str | None = None
