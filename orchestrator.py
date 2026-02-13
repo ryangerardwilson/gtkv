@@ -123,6 +123,10 @@ class Orchestrator:
     def _handle_doc_keys(self, keyval, state) -> bool:
         if self._handle_leader_keys(keyval, state):
             return True
+        if keyval in (ord("?"), Gdk.KEY_question):
+            if self._state.view is not None:
+                self._state.view.toggle_help()
+            return True
         if state & Gdk.ModifierType.CONTROL_MASK:
             if keyval in (ord("s"), ord("S")):
                 return self._save_document()

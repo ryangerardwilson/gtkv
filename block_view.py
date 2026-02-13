@@ -54,7 +54,15 @@ class BlockEditorView(Gtk.ScrolledWindow):
         self._column.set_margin_end(24)
         self._column.set_valign(Gtk.Align.START)
 
-        self.set_child(self._column)
+        self._overlay = Gtk.Overlay()
+        self._overlay.set_child(self._column)
+
+        self._help_overlay = self._build_help_overlay()
+        self._help_visible = False
+        self._overlay.add_overlay(self._help_overlay)
+        self._help_overlay.set_visible(False)
+
+        self.set_child(self._overlay)
 
     def set_document(self, document: BlockDocument) -> None:
         for child in list(self._column):
@@ -131,6 +139,12 @@ class BlockEditorView(Gtk.ScrolledWindow):
         for widget in self._block_widgets:
             widget.remove_css_class("block-selected")
 
+    def toggle_help(self) -> None:
+        self._help_visible = not self._help_visible
+        self._help_overlay.set_visible(self._help_visible)
+        if self._help_visible:
+            self._help_overlay.grab_focus()
+
     def refresh_selection(self) -> None:
         self._refresh_selection()
 
@@ -159,6 +173,59 @@ class BlockEditorView(Gtk.ScrolledWindow):
             vadjustment.set_value(max(0, top - 12))
         elif bottom > view_bottom:
             vadjustment.set_value(max(0, bottom - vadjustment.get_page_size() + 12))
+
+    @staticmethod
+    def _build_help_overlay() -> Gtk.Widget:
+        overlay = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        overlay.set_hexpand(True)
+        overlay.set_vexpand(True)
+        overlay.set_halign(Gtk.Align.CENTER)
+        overlay.set_valign(Gtk.Align.START)
+        overlay.set_margin_top(40)
+        overlay.add_css_class("help-overlay")
+
+        panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        panel.add_css_class("help-panel")
+        panel.set_halign(Gtk.Align.CENTER)
+        panel.set_valign(Gtk.Align.START)
+        panel.set_margin_top(12)
+        panel.set_margin_bottom(12)
+        panel.set_margin_start(12)
+        panel.set_margin_end(12)
+
+        title = Gtk.Label(label="Shortcuts")
+        title.add_css_class("help-title")
+        title.set_halign(Gtk.Align.START)
+        panel.append(title)
+
+        lines = [
+            "Navigation",
+            "  j/k        move selection",
+            "  g/G        first/last block",
+            "  Enter      edit selected block",
+            "",
+            "Blocks",
+            "  ,n         normal text",
+            "  ,ht        title",
+            "  ,h1 ,h2 ,h3 headings",
+            "  ,toc       table of contents",
+            "  ,js        Three.js block",
+            "  ,py        Python render",
+            "  ,ltx       LaTeX block",
+            "  ,map       map block",
+            "",
+            "Other",
+            "  Ctrl+S     save",
+            "  ?          toggle this help",
+        ]
+        body = Gtk.Label(label="\n".join(lines))
+        body.add_css_class("help-body")
+        body.set_halign(Gtk.Align.START)
+        body.set_selectable(True)
+        panel.append(body)
+
+        overlay.append(panel)
+        return overlay
 
 
 class _TextBlockView(Gtk.Frame):
