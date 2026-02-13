@@ -91,6 +91,7 @@ class Orchestrator:
         view: BlockEditorView = BlockEditorView()
         view.set_document(document)
         self._state.view = view
+        self._render_python_images_on_start()
 
         controller = Gtk.EventControllerKey()
         controller.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
@@ -254,6 +255,14 @@ class Orchestrator:
             rendered_path=None,
         )
         view.set_document(document)
+
+    def _render_python_images_on_start(self) -> None:
+        document = self._state.document
+        if document is None:
+            return
+        for index, block in enumerate(document.blocks):
+            if isinstance(block, PythonImageBlock):
+                self._render_python_image(index)
 
 def _get_picker_start_dir() -> Path:
     downloads_dir = Path.home() / "Downloads"
