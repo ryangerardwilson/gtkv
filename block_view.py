@@ -56,6 +56,8 @@ class BlockEditorView(Gtk.ScrolledWindow):
 
         self._help_visible = False
         self._help_panel = self._build_help_overlay()
+        self._help_scroll = 0.0
+        self._help_selected = 0
 
         self.set_child(self._column)
 
@@ -205,10 +207,18 @@ class BlockEditorView(Gtk.ScrolledWindow):
         self._help_visible = not self._help_visible
         if self._help_visible:
             self.clear_selection()
+            self._help_scroll = self.get_vadjustment().get_value() if self.get_vadjustment() else 0.0
+            self._help_selected = self._selected_index
             self.set_child(self._help_panel)
             self._help_panel.grab_focus()
         else:
             self.set_child(self._column)
+            GLib.idle_add(self._restore_help_state)
+
+    def _restore_help_state(self) -> bool:
+        self.set_selected_index(self._help_selected, scroll=False)
+        self.set_scroll_position(self._help_scroll)
+        return False
 
     def refresh_selection(self) -> None:
         self._refresh_selection()
