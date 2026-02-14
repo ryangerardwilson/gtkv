@@ -166,7 +166,7 @@ class colors:
         py_render_fallback_fill = "#000000"
 
         # Map block template defaults
-        map_marker = "#1f1f1f"
+        map_marker = "#0b0b0b"
         map_tile_url = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
         map_tile_attr = "&copy; OpenStreetMap contributors &copy; CARTO"
 

@@ -253,6 +253,8 @@ def update_block_from_editor(
     return True
 
 
+
+
 _THREE_GUIDANCE = (
     "/*\n"
     "Theme note: colors are set globally by your UI mode (dark/light).\n"

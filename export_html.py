@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import re
 from pathlib import Path
 
 import py_runner
@@ -59,18 +60,29 @@ def _build_html(
             latex_sources.append((block_id, block.source))
             blocks_html.append(f'<div class="block block-latex" id="{block_id}"></div>')
         elif isinstance(block, MapBlock):
-            block_id = f"map-{len(map_sources)}"
-            map_sources.append((block_id, block.source))
-            blocks_html.append(f'<div class="block block-map" id="{block_id}"></div>')
+            block_id = len(map_sources)
+            dark_id = f"map-dark-{block_id}"
+            light_id = f"map-light-{block_id}"
+            map_sources.append((dark_id, light_id, block.source))
+            blocks_html.append(
+                "<div class=\"block block-map\">"
+                f"<div id=\"{dark_id}\" class=\"map-pane dark\"></div>"
+                f"<div id=\"{light_id}\" class=\"map-pane light\"></div>"
+                "</div>"
+            )
 
     blocks_joined = "".join(blocks_html)
     latex_items = "".join(
         f"      latexBlocks.push([{_js_string(block_id)}, {_js_string(source)}]);\n"
         for block_id, source in latex_sources
     )
-    map_items = "".join(
-        f"      mapBlocks.push([{_js_string(block_id)}, {_js_string(source)}]);\n"
-        for block_id, source in map_sources
+    map_items_dark = "".join(
+        f"      mapBlocksDark.push([{_js_string(dark_id)}, {_js_string(_rewrite_map_source(source, dark.map_marker))}]);\n"
+        for dark_id, _light_id, source in map_sources
+    )
+    map_items_light = "".join(
+        f"      mapBlocksLight.push([{_js_string(light_id)}, {_js_string(_rewrite_map_source(source, light.map_marker))}]);\n"
+        for _dark_id, light_id, source in map_sources
     )
     return (
         "<!doctype html>\n"
@@ -181,6 +193,9 @@ def _build_html(
         "      }\n"
         "      .block-map { height: 320px; }\n"
         "      .block-map > div { height: 100%; }\n"
+        "      .block-map .map-pane { width: 100%; height: 100%; }\n"
+        "      :root[data-theme=\"dark\"] .block-map .map-pane.light { display: none; }\n"
+        "      :root[data-theme=\"light\"] .block-map .map-pane.dark { display: none; }\n"
         "    </style>\n"
         "  </head>\n"
         "  <body>\n"
@@ -214,23 +229,21 @@ def _build_html(
         "      applyTheme(preferredTheme);\n"
         "      const latexBlocks = [];\n"
         f"{latex_items}"
-        "      const mapBlocks = [];\n"
-        f"{map_items}"
-        f"      const mapTiles = {{ dark: '{dark.map_tile_url}', light: '{light.map_tile_url}' }};\n"
-        f"      const mapAttrs = {{ dark: '{dark.map_tile_attr}', light: '{light.map_tile_attr}' }};\n"
-        "      const mapInstances = [];\n"
+        "      const mapBlocksDark = [];\n"
+        f"{map_items_dark}"
+        "      const mapBlocksLight = [];\n"
+        f"{map_items_light}"
         "      for (const [id, src] of latexBlocks) {\n"
         "        const el = document.getElementById(id);\n"
         "        if (!el) continue;\n"
         "        try { katex.render(src, el, { throwOnError: false, displayMode: true }); }\n"
         "        catch (err) { el.textContent = String(err); }\n"
         "      }\n"
-        "      for (const [id, src] of mapBlocks) {\n"
+        "      for (const [id, src] of mapBlocksDark) {\n"
         "        const el = document.getElementById(id);\n"
         "        if (!el) continue;\n"
         "        const map = L.map(el, { zoomControl: false, attributionControl: true });\n"
-        "        const tileLayer = L.tileLayer(mapTiles[preferredTheme], { attribution: mapAttrs[preferredTheme] }).addTo(map);\n"
-        "        mapInstances.push({ map, tileLayer });\n"
+        f"        const tileLayer = L.tileLayer('{dark.map_tile_url}', {{ attribution: '{dark.map_tile_attr}' }}).addTo(map);\n"
         "        try {\n"
         "          const fn = new Function('L', 'map', 'tileLayer', src);\n"
         "          fn(L, map, tileLayer);\n"
@@ -238,17 +251,22 @@ def _build_html(
         "          el.textContent = String(err);\n"
         "        }\n"
         "      }\n"
-        "      const updateMapTiles = (value) => {\n"
-        "        mapInstances.forEach((entry) => {\n"
-        "          if (entry.tileLayer) entry.tileLayer.remove();\n"
-        "          entry.tileLayer = L.tileLayer(mapTiles[value], { attribution: mapAttrs[value] }).addTo(entry.map);\n"
-        "        });\n"
-        "      };\n"
+        "      for (const [id, src] of mapBlocksLight) {\n"
+        "        const el = document.getElementById(id);\n"
+        "        if (!el) continue;\n"
+        "        const map = L.map(el, { zoomControl: false, attributionControl: true });\n"
+        f"        const tileLayer = L.tileLayer('{light.map_tile_url}', {{ attribution: '{light.map_tile_attr}' }}).addTo(map);\n"
+        "        try {\n"
+        "          const fn = new Function('L', 'map', 'tileLayer', src);\n"
+        "          fn(L, map, tileLayer);\n"
+        "        } catch (err) {\n"
+        "          el.textContent = String(err);\n"
+        "        }\n"
+        "      }\n"
         "      toggleButtons.forEach((btn) => {\n"
         "        btn.addEventListener('click', () => {\n"
         "          const value = btn.dataset.theme;\n"
         "          applyTheme(value);\n"
-        "          updateMapTiles(value);\n"
         "          setStoredTheme(value);\n"
         "        });\n"
         "      });\n"
@@ -386,6 +404,21 @@ def _js_string(value: str) -> str:
     return (
         '"' + value.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n") + '"'
     )
+
+
+def _rewrite_map_source(source: str, marker_color: str) -> str:
+    updated = source
+    updated = re.sub(
+        r"(color\s*:\s*)(['\"])[^'\"]+\2",
+        rf"\1'{marker_color}'",
+        updated,
+    )
+    updated = re.sub(
+        r"(fillColor\s*:\s*)(['\"])[^'\"]+\2",
+        rf"\1'{marker_color}'",
+        updated,
+    )
+    return updated
 
 
 def _build_toc(document: BlockDocument) -> tuple[str, dict[int, str]]:

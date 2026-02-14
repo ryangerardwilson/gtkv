@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 
 import config
 from design_constants import colors_for
@@ -12,7 +13,8 @@ LEAFLET_JS_CDN = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
 
 def render_map_html(source: str, ui_mode: str | None = None) -> str:
     palette = colors_for(ui_mode or config.get_ui_mode() or "dark")
-    js_source = json.dumps(source)
+    rewritten = _rewrite_marker_colors(source, palette.map_marker)
+    js_source = json.dumps(rewritten)
     return (
         "<!doctype html>\n"
         "<html>\n"
@@ -51,3 +53,18 @@ def render_map_html(source: str, ui_mode: str | None = None) -> str:
         "  </body>\n"
         "</html>\n"
     )
+
+
+def _rewrite_marker_colors(source: str, marker_color: str) -> str:
+    updated = source
+    updated = re.sub(
+        r"(color\s*:\s*)(['\"])[^'\"]+\2",
+        rf"\1'{marker_color}'",
+        updated,
+    )
+    updated = re.sub(
+        r"(fillColor\s*:\s*)(['\"])[^'\"]+\2",
+        rf"\1'{marker_color}'",
+        updated,
+    )
+    return updated

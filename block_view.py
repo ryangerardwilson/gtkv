@@ -1034,8 +1034,10 @@ class _MapBlockView(Gtk.Frame):
         self.add_css_class("block")
         self.add_css_class("block-map")
 
-        self.view = None
-        self._html = None
+        self.view_dark = None
+        self.view_light = None
+        self._html_dark = None
+        self._html_light = None
         self._box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         _apply_block_padding(self._box)
 
@@ -1051,7 +1053,25 @@ class _MapBlockView(Gtk.Frame):
             self.set_child(label)
             return
 
-        view = WebKit.WebView()
+        self._html_dark = render_map_html(source, "dark")
+        self._html_light = render_map_html(source, "light")
+
+        self.view_dark = self._build_map_view(self._html_dark)
+        self.view_light = self._build_map_view(self._html_light)
+
+        self._box.append(self.view_dark)
+        self._box.append(self.view_light)
+        self._set_theme_visibility()
+        self.set_child(self._box)
+
+    def reload_html(self) -> None:
+        if self.view_dark is not None and self._html_dark is not None:
+            self.view_dark.load_html(self._html_dark, "file:///")
+        if self.view_light is not None and self._html_light is not None:
+            self.view_light.load_html(self._html_light, "file:///")
+
+    def _build_map_view(self, html: str) -> Gtk.Widget:
+        view = WebKit.WebView()  # type: ignore[union-attr]
         settings = view.get_settings()
         if settings is not None:
             if hasattr(settings, "set_enable_javascript"):
@@ -1070,16 +1090,15 @@ class _MapBlockView(Gtk.Frame):
         view.set_vexpand(False)
         view.set_hexpand(True)
         view.set_size_request(-1, 320)
-        self._html = render_map_html(source, ui_mode)
-        view.load_html(self._html, "file:///")
-        self.view = view
-        self._box.append(view)
-        self.set_child(self._box)
+        view.load_html(html, "file:///")
+        return view
 
-    def reload_html(self) -> None:
-        if self.view is None or self._html is None:
+    def _set_theme_visibility(self) -> None:
+        if self.view_dark is None or self.view_light is None:
             return
-        self.view.load_html(self._html, "file:///")
+        is_dark = self._ui_mode == "dark"
+        self.view_dark.set_visible(is_dark)
+        self.view_light.set_visible(not is_dark)
 
     def _on_latex_load_changed(self, view, load_event) -> None:
         if WebKit is None:

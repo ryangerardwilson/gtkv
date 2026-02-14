@@ -27,6 +27,7 @@ from _version import __version__
 from app_state import AppState
 from block_model import (
     BlockDocument,
+    MapBlock,
     PythonImageBlock,
     TextBlock,
     sample_document,
@@ -377,8 +378,18 @@ class Orchestrator:
         _load_css(Path(__file__).with_name("style.css"), next_mode)
         if self._state.document is not None and self._state.view is not None:
             self._state.view.set_ui_mode(next_mode, self._state.document)
+            self._rerender_map_blocks()
             self._rerender_python_blocks()
         self._show_status(f"Theme: {next_mode}", "success")
+
+    def _rerender_map_blocks(self) -> None:
+        document = self._state.document
+        view = self._state.view
+        if document is None or view is None:
+            return
+        for index, block in enumerate(document.blocks):
+            if isinstance(block, MapBlock):
+                view.reload_media_at(index)
 
     def _rerender_python_blocks(self) -> None:
         document = self._state.document
