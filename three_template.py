@@ -6,7 +6,9 @@ import config
 from design_constants import colors_for
 
 
-def default_three_template(ui_mode: str | None = None, include_guidance: bool = True) -> str:
+def default_three_template(
+    ui_mode: str | None = None, include_guidance: bool = True
+) -> str:
     palette = colors_for(ui_mode or config.get_ui_mode() or "dark")
     material_color = f"0x{palette.three_material:06x}"
     light_color = f"0x{palette.three_light:06x}"

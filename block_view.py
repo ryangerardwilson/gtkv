@@ -98,9 +98,7 @@ class BlockEditorView(Gtk.Box):
         self._ui_mode = ui_mode
 
         self._scroller = Gtk.ScrolledWindow()
-        self._scroller.set_policy(
-            Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC
-        )
+        self._scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         self._scroller.set_hexpand(True)
         self._scroller.set_vexpand(True)
         self._scroller.set_can_focus(True)
@@ -641,9 +639,7 @@ class BlockEditorView(Gtk.Box):
 
     def _expand_all_toc(self) -> None:
         self._toc_expanded = {
-            index
-            for index, entry in enumerate(self._toc_entries)
-            if entry.has_children
+            index for index, entry in enumerate(self._toc_entries) if entry.has_children
         }
         self._render_toc_entries()
         self._schedule_toc_scroll()

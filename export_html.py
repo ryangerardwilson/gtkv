@@ -35,9 +35,7 @@ def export_document(
     output_path.write_text(html, encoding="utf-8")
 
 
-def _build_html(
-    document: BlockDocument, python_path: str | None, ui_mode: str
-) -> str:
+def _build_html(document: BlockDocument, python_path: str | None, ui_mode: str) -> str:
     dark = colors_for("dark")
     light = colors_for("light")
     blocks_html = []
@@ -46,15 +44,11 @@ def _build_html(
     toc_text, heading_ids = _build_toc(document)
     for index, block in enumerate(document.blocks):
         if isinstance(block, TextBlock):
-            blocks_html.append(
-                _render_text_block(block, toc_text, heading_ids, index)
-            )
+            blocks_html.append(_render_text_block(block, toc_text, heading_ids, index))
         elif isinstance(block, ThreeBlock):
             blocks_html.append(_render_three_block(block.source, index))
         elif isinstance(block, PythonImageBlock):
-            blocks_html.append(
-                _render_pyimage_block(block, python_path, ui_mode)
-            )
+            blocks_html.append(_render_pyimage_block(block, python_path, ui_mode))
         elif isinstance(block, LatexBlock):
             block_id = f"latex-{len(latex_sources)}"
             latex_sources.append((block_id, block.source))
@@ -65,9 +59,9 @@ def _build_html(
             light_id = f"map-light-{block_id}"
             map_sources.append((dark_id, light_id, block.source))
             blocks_html.append(
-                "<div class=\"block block-map\">"
-                f"<div id=\"{dark_id}\" class=\"map-pane dark\"></div>"
-                f"<div id=\"{light_id}\" class=\"map-pane light\"></div>"
+                '<div class="block block-map">'
+                f'<div id="{dark_id}" class="map-pane dark"></div>'
+                f'<div id="{light_id}" class="map-pane light"></div>'
                 "</div>"
             )
 
@@ -86,7 +80,7 @@ def _build_html(
     )
     return (
         "<!doctype html>\n"
-        f"<html data-theme=\"{ui_mode}\">\n"
+        f'<html data-theme="{ui_mode}">\n'
         "  <head>\n"
         '    <meta charset="utf-8" />\n'
         '    <meta name="viewport" content="width=device-width, initial-scale=1" />\n'
@@ -96,7 +90,7 @@ def _build_html(
         "      :root {\n"
         "        color-scheme: light dark;\n"
         "      }\n"
-        "      :root[data-theme=\"dark\"] {\n"
+        '      :root[data-theme="dark"] {\n'
         f"        --body-background: {dark.export_body_background};\n"
         f"        --body-text: {dark.export_body_text};\n"
         f"        --title-color: {dark.export_title};\n"
@@ -112,7 +106,7 @@ def _build_html(
         f"        --toggle-active-bg: {dark.export_toggle_active_bg};\n"
         f"        --toggle-active-text: {dark.export_toggle_active_text};\n"
         "      }\n"
-        "      :root[data-theme=\"light\"] {\n"
+        '      :root[data-theme="light"] {\n'
         f"        --body-background: {light.export_body_background};\n"
         f"        --body-text: {light.export_body_text};\n"
         f"        --title-color: {light.export_title};\n"
@@ -159,8 +153,8 @@ def _build_html(
         "      .toc-line.depth-3 { padding-left: 32px; }\n"
         "      .block-pyimage { text-align: center; }\n"
         "      .block-pyimage img { max-width: 100%; height: auto; display: inline-block; }\n"
-        "      :root[data-theme=\"dark\"] .block-pyimage img.light { display: none; }\n"
-        "      :root[data-theme=\"light\"] .block-pyimage img.dark { display: none; }\n"
+        '      :root[data-theme="dark"] .block-pyimage img.light { display: none; }\n'
+        '      :root[data-theme="light"] .block-pyimage img.dark { display: none; }\n'
         "      .block-three canvas { width: 100%; height: 300px; display: block; }\n"
         f"      .block-latex {{ font-size: {font.export_latex}; color: var(--latex-color); }}\n"
         "      .theme-toggle {\n"
@@ -194,14 +188,14 @@ def _build_html(
         "      .block-map { height: 320px; }\n"
         "      .block-map > div { height: 100%; }\n"
         "      .block-map .map-pane { width: 100%; height: 100%; }\n"
-        "      :root[data-theme=\"dark\"] .block-map .map-pane.light { display: none; }\n"
-        "      :root[data-theme=\"light\"] .block-map .map-pane.dark { display: none; }\n"
+        '      :root[data-theme="dark"] .block-map .map-pane.light { display: none; }\n'
+        '      :root[data-theme="light"] .block-map .map-pane.dark { display: none; }\n'
         "    </style>\n"
         "  </head>\n"
         "  <body>\n"
-        "    <div class=\"theme-toggle\" role=\"group\" aria-label=\"Theme toggle\">\n"
-        "      <button type=\"button\" data-theme=\"dark\">Dark</button>\n"
-        "      <button type=\"button\" data-theme=\"light\">Light</button>\n"
+        '    <div class="theme-toggle" role="group" aria-label="Theme toggle">\n'
+        '      <button type="button" data-theme="dark">Dark</button>\n'
+        '      <button type="button" data-theme="light">Light</button>\n'
         "    </div>\n"
         "    <main>\n"
         f"{blocks_joined}\n"
@@ -327,24 +321,16 @@ def _render_pyimage_block(
         )
         if not dark_result.rendered_data and not light_result.rendered_data:
             error = _escape_html(
-                dark_result.error
-                or light_result.error
-                or "Python render failed"
+                dark_result.error or light_result.error or "Python render failed"
             )
-            return (
-                f'<section class="block block-pyimage">Python render error: {error}</section>'
-            )
+            return f'<section class="block block-pyimage">Python render error: {error}</section>'
         dark_encoded = (
-            base64.b64encode(dark_result.rendered_data.encode("utf-8")).decode(
-                "utf-8"
-            )
+            base64.b64encode(dark_result.rendered_data.encode("utf-8")).decode("utf-8")
             if dark_result.rendered_data
             else None
         )
         light_encoded = (
-            base64.b64encode(light_result.rendered_data.encode("utf-8")).decode(
-                "utf-8"
-            )
+            base64.b64encode(light_result.rendered_data.encode("utf-8")).decode("utf-8")
             if light_result.rendered_data
             else None
         )
@@ -440,23 +426,23 @@ def _build_toc(document: BlockDocument) -> tuple[str, dict[int, str]]:
 
     if not headings:
         return (
-            "<div class=\"toc-index\">Index</div>"
-            "<div class=\"toc-empty\">(No headings yet)</div>",
+            '<div class="toc-index">Index</div>'
+            '<div class="toc-empty">(No headings yet)</div>',
             heading_ids,
         )
 
-    lines = ["<div class=\"toc-index\">Index</div>"]
+    lines = ['<div class="toc-index">Index</div>']
     for index, kind, text in headings:
         anchor = heading_ids.get(index)
         if not anchor:
             continue
-        anchor_link = f"- <a href=\"#{anchor}\">{_escape_html(text)}</a>"
+        anchor_link = f'- <a href="#{anchor}">{_escape_html(text)}</a>'
         if kind == "h1":
-            lines.append(f"<div class=\"toc-line depth-1\">{anchor_link}</div>")
+            lines.append(f'<div class="toc-line depth-1">{anchor_link}</div>')
         elif kind == "h2":
-            lines.append(f"<div class=\"toc-line depth-2\">{anchor_link}</div>")
+            lines.append(f'<div class="toc-line depth-2">{anchor_link}</div>')
         else:
-            lines.append(f"<div class=\"toc-line depth-3\">{anchor_link}</div>")
+            lines.append(f'<div class="toc-line depth-3">{anchor_link}</div>')
     return "\n".join(lines), heading_ids
 
 

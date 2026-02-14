@@ -253,8 +253,6 @@ def update_block_from_editor(
     return True
 
 
-
-
 _THREE_GUIDANCE = (
     "/*\n"
     "Theme note: colors are set globally by your UI mode (dark/light).\n"
@@ -292,7 +290,7 @@ _MAP_GUIDANCE = (
 )
 
 _PY_GUIDANCE = (
-    "\"\"\"\n"
+    '"""\n'
     "Theme note: colors are set globally by your UI mode (dark/light).\n"
     "Override locally by setting explicit colors in this block.\n"
     "Defaults applied: matplotlib text/ticks/axes colors and transparent figure.\n"
@@ -303,10 +301,10 @@ _PY_GUIDANCE = (
     "\n"
     "fig, ax = plt.subplots()\n"
     "ax.plot([0, 1, 2], [0, 1, 0.5])\n"
-    "ax.set_title(\"Sample plot\")\n"
-    "fig.savefig(__gtkv__.renderer, format=\"svg\", dpi=200, transparent=True, bbox_inches=\"tight\")\n"
+    'ax.set_title("Sample plot")\n'
+    'fig.savefig(__gtkv__.renderer, format="svg", dpi=200, transparent=True, bbox_inches="tight")\n'
     "```\n"
-    "\"\"\"\n\n"
+    '"""\n\n'
 )
 
 

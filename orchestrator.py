@@ -390,7 +390,6 @@ class Orchestrator:
             if isinstance(block, MapBlock):
                 view.reload_media_at(index)
 
-
     def _open_selected_block_editor(self) -> bool:
         if self._state.active_editor is not None:
             return True
@@ -469,7 +468,9 @@ class Orchestrator:
             print("No document path set; cannot export", file=sys.stderr)
             return False
         output_path = document.path.with_suffix(".html")
-        export_document(document, output_path, self._python_path, self._ui_mode or "dark")
+        export_document(
+            document, output_path, self._python_path, self._ui_mode or "dark"
+        )
         return True
 
     def _render_python_image(self, index: int) -> None:
@@ -544,7 +545,9 @@ def _load_css(css_path: Path, ui_mode: str) -> None:
     variables += f"  --app-background: {palette.app_background};\n"
     variables += f"  --block-image-label-color: {palette.block_image_label};\n"
     variables += f"  --block-selected-shadow: {palette.block_selected_shadow};\n"
-    variables += f"  --block-selected-background: {palette.block_selected_background};\n"
+    variables += (
+        f"  --block-selected-background: {palette.block_selected_background};\n"
+    )
     variables += f"  --help-panel-background: {palette.help_panel_background};\n"
     variables += f"  --help-panel-border: {palette.help_panel_border};\n"
     variables += f"  --help-title-color: {palette.help_title};\n"
@@ -558,7 +561,9 @@ def _load_css(css_path: Path, ui_mode: str) -> None:
     variables += f"  --toc-title-size: {font.toc_title};\n"
     variables += f"  --toc-hint-color: {palette.toc_hint};\n"
     variables += f"  --toc-hint-size: {font.toc_hint};\n"
-    variables += f"  --toc-row-selected-background: {palette.toc_row_selected_background};\n"
+    variables += (
+        f"  --toc-row-selected-background: {palette.toc_row_selected_background};\n"
+    )
     variables += f"  --toc-row-selected-border: {palette.toc_row_selected_border};\n"
     variables += f"  --toc-row-label-color: {palette.toc_row_label};\n"
     variables += f"  --toc-row-size: {font.toc_row};\n"

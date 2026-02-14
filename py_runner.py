@@ -12,6 +12,7 @@ from pathlib import Path
 import config
 from design_constants import colors_for
 
+
 @dataclass
 class RenderResult:
     rendered_data: str | None
@@ -113,9 +114,7 @@ def _build_runner_script(
     )
 
 
-def _replace_black_with_white_svg(
-    svg_text: str, ui_mode: str | None = None
-) -> str:
+def _replace_black_with_white_svg(svg_text: str, ui_mode: str | None = None) -> str:
     palette = colors_for(ui_mode or config.get_ui_mode() or "dark")
     replacement_rgb = palette.py_render_replacement_rgb
     updated = svg_text

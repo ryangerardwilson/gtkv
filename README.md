@@ -167,8 +167,8 @@ animate();
 
 ### Python render blocks
 
-Insert a block with `,bpy`. Configure the Python path on first launch. Your code
-must write an SVG to `__gtkv__.renderer`.
+Insert a block with `,bpy`. Configure the Python path on first launch. Your
+code must write an SVG to `__gtkv__.renderer`.
 
 Defaults applied by the renderer to match the active UI mode:
 
