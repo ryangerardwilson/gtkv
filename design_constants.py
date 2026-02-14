@@ -59,6 +59,11 @@ class colors:
         export_body = "#d0d0d0"
         export_toc = "#bfbfbf"
         export_latex = "#d0d0d0"
+        export_toggle_bg = "rgba(18, 18, 18, 0.9)"
+        export_toggle_text = "#d0d0d0"
+        export_toggle_border = "rgba(255, 255, 255, 0.12)"
+        export_toggle_active_bg = "#e6e6e6"
+        export_toggle_active_text = "#0a0a0a"
 
         # WebKit HTML text colors
         webkit_three_text = "#ddd"
@@ -136,6 +141,11 @@ class colors:
         export_body = "#1f1f1f"
         export_toc = "#3a3a3a"
         export_latex = "#1f1f1f"
+        export_toggle_bg = "rgba(250, 250, 250, 0.9)"
+        export_toggle_text = "#1f1f1f"
+        export_toggle_border = "rgba(0, 0, 0, 0.12)"
+        export_toggle_active_bg = "#111111"
+        export_toggle_active_text = "#ffffff"
 
         # WebKit HTML text colors
         webkit_three_text = "#222"
