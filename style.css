@@ -92,6 +92,58 @@ window {
   color: #cfcfcf;
 }
 
+.toc-overlay {
+  pointer-events: none;
+}
+
+.toc-panel {
+  pointer-events: auto;
+  background: rgba(12, 12, 12, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 18px 20px;
+  min-width: 460px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+.toc-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #e6e6e6;
+  margin-bottom: 2px;
+}
+
+.toc-hint {
+  font-size: 11px;
+  color: #a9a9a9;
+  margin-bottom: 6px;
+}
+
+.toc-list {
+  padding: 4px 0;
+}
+
+.toc-row {
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+
+.toc-row-selected {
+  background: rgba(40, 40, 40, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.toc-row-label {
+  font-size: 12px;
+  color: #d2d2d2;
+}
+
+.toc-empty {
+  font-size: 12px;
+  color: #8f8f8f;
+  padding: 8px 4px;
+}
+
 .status-bar {
   background: rgba(12, 12, 12, 0.95);
   border-top: 1px solid rgba(255, 255, 255, 0.06);

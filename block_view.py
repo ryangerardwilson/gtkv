@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+from dataclasses import dataclass
 from typing import Sequence
 from pathlib import Path
 
@@ -34,6 +35,15 @@ from block_model import (
 from latex_template import render_latex_html
 from map_template import render_map_html
 from three_template import render_three_html
+
+
+@dataclass
+class OutlineEntry:
+    block_index: int
+    kind: str
+    depth: int
+    text: str
+    has_children: bool
 
 
 class BlockEditorView(Gtk.Box):
@@ -69,6 +79,17 @@ class BlockEditorView(Gtk.Box):
 
         self._help_panel.set_visible(False)
 
+        self._toc_visible = False
+        self._toc_panel = self._build_toc_overlay()
+        self._toc_panel.set_visible(False)
+        self._toc_entries: list[OutlineEntry] = []
+        self._toc_visible_entries: list[int] = []
+        self._toc_rows: list[Gtk.Widget] = []
+        self._toc_selected_entry = 0
+        self._toc_collapsed: set[int] = set()
+        self._toc_scroll_before = 0.0
+        self._toc_selected_before = 0
+
         self._status_timer_id: int | None = None
         self._scroll_idle_id: int | None = None
         self._scroll_retries = 0
@@ -81,13 +102,16 @@ class BlockEditorView(Gtk.Box):
         self._status_label.set_hexpand(True)
         self._status_bar.append(self._status_label)
 
-        self._root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self._root.set_hexpand(True)
-        self._root.set_vexpand(True)
-        self._root.append(self._column)
-        self._root.append(self._help_panel)
-        self._scroller.set_child(self._root)
-        self.append(self._scroller)
+        self._scroller.set_child(self._column)
+
+        self._overlay = Gtk.Overlay()
+        self._overlay.set_hexpand(True)
+        self._overlay.set_vexpand(True)
+        self._overlay.set_child(self._scroller)
+        self._overlay.add_overlay(self._help_panel)
+        self._overlay.add_overlay(self._toc_panel)
+
+        self.append(self._overlay)
         self.append(self._status_bar)
 
     def set_document(self, document: BlockDocument) -> None:
@@ -294,6 +318,268 @@ class BlockEditorView(Gtk.Box):
     def _restore_help_state(self) -> bool:
         self.set_selected_index(self._help_selected, scroll=False)
         self.set_scroll_position(self._help_scroll)
+        return False
+
+    def toc_drill_active(self) -> bool:
+        return self._toc_visible
+
+    def open_toc_drill(self, document: BlockDocument) -> None:
+        if self._toc_visible:
+            return
+        self._toc_visible = True
+        self._toc_scroll_before = self.get_scroll_position()
+        self._toc_selected_before = self._selected_index
+        self._toc_collapsed = set()
+        self._toc_entries = self._build_outline_entries(document)
+        self._toc_selected_entry = 0
+        if self._toc_entries:
+            for i, entry in enumerate(self._toc_entries):
+                if entry.block_index == self._selected_index:
+                    self._toc_selected_entry = i
+                    break
+            else:
+                for i, entry in enumerate(self._toc_entries):
+                    if entry.block_index > self._selected_index:
+                        self._toc_selected_entry = max(0, i - 1)
+                        break
+        self._render_toc_entries()
+        self._toc_panel.set_visible(True)
+        self._toc_panel.grab_focus()
+        self._schedule_toc_scroll()
+
+    def close_toc_drill(self, restore: bool = True) -> None:
+        if not self._toc_visible:
+            return
+        self._toc_visible = False
+        self._toc_panel.set_visible(False)
+        if restore:
+            self.set_selected_index(self._toc_selected_before, scroll=False)
+            self.set_scroll_position(self._toc_scroll_before)
+
+    def handle_toc_drill_key(self, keyval: int) -> bool:
+        if not self._toc_visible:
+            return False
+        if keyval in (Gdk.KEY_Escape, ord("q"), ord("Q")):
+            self.close_toc_drill(restore=True)
+            return True
+        if keyval in (Gdk.KEY_Return, Gdk.KEY_KP_Enter):
+            entry = self._get_selected_toc_entry()
+            if entry is None:
+                self.close_toc_drill(restore=True)
+                return True
+            block_index = entry.block_index
+            self.set_selected_index(block_index)
+            self.center_on_index(block_index)
+            self.close_toc_drill(restore=False)
+            return True
+        if keyval in (ord("j"), ord("J")):
+            self._move_toc_selection(1)
+            return True
+        if keyval in (ord("k"), ord("K")):
+            self._move_toc_selection(-1)
+            return True
+        if keyval in (ord("h"), ord("H")):
+            self._collapse_or_parent()
+            return True
+        if keyval in (ord("l"), ord("L")):
+            self._expand_or_child()
+            return True
+        return True
+
+    def _build_toc_overlay(self) -> Gtk.Widget:
+        overlay = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        overlay.set_hexpand(True)
+        overlay.set_vexpand(True)
+        overlay.set_halign(Gtk.Align.CENTER)
+        overlay.set_valign(Gtk.Align.START)
+        overlay.set_margin_top(32)
+        overlay.add_css_class("toc-overlay")
+
+        panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        panel.add_css_class("toc-panel")
+        panel.set_halign(Gtk.Align.CENTER)
+        panel.set_valign(Gtk.Align.START)
+        panel.set_margin_top(12)
+        panel.set_margin_bottom(12)
+        panel.set_margin_start(12)
+        panel.set_margin_end(12)
+
+        title = Gtk.Label(label="Outline")
+        title.add_css_class("toc-title")
+        title.set_halign(Gtk.Align.START)
+        panel.append(title)
+
+        hint = Gtk.Label(label="hjkl navigate | Enter jump | Esc close")
+        hint.add_css_class("toc-hint")
+        hint.set_halign(Gtk.Align.START)
+        panel.append(hint)
+
+        scroller = Gtk.ScrolledWindow()
+        scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        scroller.set_hexpand(True)
+        scroller.set_vexpand(True)
+        scroller.set_min_content_height(320)
+
+        toc_list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        toc_list.add_css_class("toc-list")
+        scroller.set_child(toc_list)
+        panel.append(scroller)
+
+        self._toc_list = toc_list
+        self._toc_scroller = scroller
+
+        overlay.append(panel)
+        return overlay
+
+    def _build_outline_entries(self, document: BlockDocument) -> list[OutlineEntry]:
+        entries: list[OutlineEntry] = []
+        depth_map = {"h1": 0, "h2": 1, "h3": 2}
+        for index, block in enumerate(document.blocks):
+            if isinstance(block, TextBlock) and block.kind in {"h1", "h2", "h3"}:
+                text = block.text.strip().splitlines()[0] if block.text.strip() else ""
+                if not text:
+                    continue
+                entries.append(
+                    OutlineEntry(
+                        block_index=index,
+                        kind=block.kind,
+                        depth=depth_map[block.kind],
+                        text=text,
+                        has_children=False,
+                    )
+                )
+        for i in range(len(entries) - 1):
+            if entries[i + 1].depth > entries[i].depth:
+                entries[i].has_children = True
+        return entries
+
+    def _render_toc_entries(self) -> None:
+        for child in list(self._toc_list):
+            self._toc_list.remove(child)
+        self._toc_rows = []
+        self._toc_visible_entries = []
+
+        if not self._toc_entries:
+            empty = Gtk.Label(label="No headings yet")
+            empty.add_css_class("toc-empty")
+            empty.set_halign(Gtk.Align.START)
+            self._toc_list.append(empty)
+            return
+
+        collapsed_depths: list[int] = []
+        for i, entry in enumerate(self._toc_entries):
+            depth = entry.depth
+            while collapsed_depths and depth <= collapsed_depths[-1]:
+                collapsed_depths.pop()
+            if collapsed_depths:
+                continue
+            self._toc_visible_entries.append(i)
+            if entry.has_children and entry.block_index in self._toc_collapsed:
+                collapsed_depths.append(depth)
+
+        if self._toc_selected_entry not in self._toc_visible_entries:
+            self._toc_selected_entry = self._toc_visible_entries[0]
+
+        for visible_index, entry_index in enumerate(self._toc_visible_entries):
+            entry = self._toc_entries[entry_index]
+            row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+            row.add_css_class("toc-row")
+            if entry_index == self._toc_selected_entry:
+                row.add_css_class("toc-row-selected")
+
+            marker = " "
+            if entry.has_children:
+                marker = ">" if entry.block_index in self._toc_collapsed else "v"
+            label = Gtk.Label(label=f"{marker} {entry.text}")
+            label.add_css_class("toc-row-label")
+            label.set_halign(Gtk.Align.START)
+            row.set_margin_start(12 + entry.depth * 16)
+            row.append(label)
+            self._toc_list.append(row)
+            self._toc_rows.append(row)
+
+    def _get_selected_toc_entry(self) -> OutlineEntry | None:
+        if not self._toc_entries or not self._toc_visible_entries:
+            return None
+        return self._toc_entries[self._toc_selected_entry]
+
+    def _move_toc_selection(self, delta: int) -> None:
+        if not self._toc_visible_entries:
+            return
+        current = self._toc_visible_entries.index(self._toc_selected_entry)
+        next_index = max(0, min(current + delta, len(self._toc_visible_entries) - 1))
+        self._toc_selected_entry = self._toc_visible_entries[next_index]
+        self._render_toc_entries()
+        self._schedule_toc_scroll()
+
+    def _collapse_or_parent(self) -> None:
+        entry = self._get_selected_toc_entry()
+        if entry is None:
+            return
+        if entry.has_children and entry.block_index not in self._toc_collapsed:
+            self._toc_collapsed.add(entry.block_index)
+            self._render_toc_entries()
+            self._schedule_toc_scroll()
+            return
+        parent_index = self._find_parent_entry_index(self._toc_selected_entry)
+        if parent_index is not None:
+            self._toc_selected_entry = parent_index
+            self._render_toc_entries()
+            self._schedule_toc_scroll()
+
+    def _expand_or_child(self) -> None:
+        entry = self._get_selected_toc_entry()
+        if entry is None:
+            return
+        if entry.block_index in self._toc_collapsed:
+            self._toc_collapsed.remove(entry.block_index)
+            self._render_toc_entries()
+            self._schedule_toc_scroll()
+            return
+        child_index = self._find_first_child_entry_index(self._toc_selected_entry)
+        if child_index is not None:
+            self._toc_selected_entry = child_index
+            self._render_toc_entries()
+            self._schedule_toc_scroll()
+
+    def _find_parent_entry_index(self, entry_index: int) -> int | None:
+        if entry_index <= 0:
+            return None
+        depth = self._toc_entries[entry_index].depth
+        for i in range(entry_index - 1, -1, -1):
+            if self._toc_entries[i].depth < depth:
+                return i
+        return None
+
+    def _find_first_child_entry_index(self, entry_index: int) -> int | None:
+        if entry_index < 0 or entry_index >= len(self._toc_entries) - 1:
+            return None
+        depth = self._toc_entries[entry_index].depth
+        next_entry = self._toc_entries[entry_index + 1]
+        if next_entry.depth > depth:
+            return entry_index + 1
+        return None
+
+    def _schedule_toc_scroll(self) -> None:
+        GLib.idle_add(self._scroll_toc_to_selected)
+
+    def _scroll_toc_to_selected(self) -> bool:
+        if not self._toc_visible_entries or not self._toc_rows:
+            return False
+        display_index = self._toc_visible_entries.index(self._toc_selected_entry)
+        row = self._toc_rows[display_index]
+        allocation = row.get_allocation()
+        vadjustment = self._toc_scroller.get_vadjustment()
+        if vadjustment is None:
+            return False
+        top = allocation.y
+        bottom = allocation.y + allocation.height
+        view_top = vadjustment.get_value()
+        view_bottom = view_top + vadjustment.get_page_size()
+        if top < view_top:
+            vadjustment.set_value(max(0, top - 8))
+        elif bottom > view_bottom:
+            vadjustment.set_value(max(0, bottom - vadjustment.get_page_size() + 8))
         return False
 
     def refresh_selection(self) -> None:

@@ -27,6 +27,7 @@ from app_state import AppState
 from block_model import (
     BlockDocument,
     PythonImageBlock,
+    TextBlock,
     sample_document,
 )
 from block_view import BlockEditorView
@@ -127,6 +128,8 @@ class Orchestrator:
         return self._handle_doc_keys(keyval, state)
 
     def _handle_doc_keys(self, keyval, state) -> bool:
+        if self._state.view is not None and self._state.view.toc_drill_active():
+            return self._state.view.handle_toc_drill_key(keyval)
         if self._handle_delete_keys(keyval, state):
             return True
         if self._handle_yank_keys(keyval, state):
@@ -322,6 +325,22 @@ class Orchestrator:
         if self._leader_buffer == "btoc":
             self._leader_active = False
             return actions.insert_toc_block(self._state)
+        if self._leader_buffer == "toc":
+            self._leader_active = False
+            if self._state.document is None or self._state.view is None:
+                return False
+            toc_exists = any(
+                isinstance(block, TextBlock) and block.kind == "toc"
+                for block in self._state.document.blocks
+            )
+            if not toc_exists:
+                insert_at = self._state.view.get_selected_index()
+                self._state.document.insert_block_after(
+                    insert_at, TextBlock("", kind="toc")
+                )
+                self._state.view.set_document(self._state.document)
+            self._state.view.open_toc_drill(self._state.document)
+            return True
         return True
 
     def _quit(self) -> None:
@@ -338,6 +357,16 @@ class Orchestrator:
     def _open_selected_block_editor(self) -> bool:
         if self._state.active_editor is not None:
             return True
+
+        if self._state.document is not None and self._state.view is not None:
+            index = self._state.view.get_selected_index()
+            try:
+                block = self._state.document.blocks[index]
+            except IndexError:
+                block = None
+            if isinstance(block, TextBlock) and block.kind == "toc":
+                self._state.view.open_toc_drill(self._state.document)
+                return True
 
         payload = actions.get_selected_edit_payload(self._state)
         if payload is None:
