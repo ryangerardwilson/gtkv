@@ -22,8 +22,6 @@ KATEX_JS_CDN = "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"
 THREE_JS_CDN = "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js"
 LEAFLET_CSS_CDN = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
 LEAFLET_JS_CDN = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-LEAFLET_TILE_URL = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-LEAFLET_TILE_ATTR = "&copy; OpenStreetMap contributors &copy; CARTO"
 
 
 def export_document(
@@ -131,7 +129,7 @@ def _build_html(
         "        const el = document.getElementById(id);\n"
         "        if (!el) continue;\n"
         "        const map = L.map(el, { zoomControl: false, attributionControl: true });\n"
-        f"        const tileLayer = L.tileLayer('{LEAFLET_TILE_URL}', {{ attribution: '{LEAFLET_TILE_ATTR}' }}).addTo(map);\n"
+        f"        const tileLayer = L.tileLayer('{palette.map_tile_url}', {{ attribution: '{palette.map_tile_attr}' }}).addTo(map);\n"
         "        try {\n"
         "          const fn = new Function('L', 'map', 'tileLayer', src);\n"
         "          fn(L, map, tileLayer);\n"

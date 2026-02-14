@@ -80,6 +80,8 @@ class colors:
 
         # Map block template defaults
         map_marker = "#d0d0d0"
+        map_tile_url = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+        map_tile_attr = "&copy; OpenStreetMap contributors &copy; CARTO"
 
     class light:
         """Light-mode palette (placeholder defaults)."""
@@ -155,6 +157,8 @@ class colors:
 
         # Map block template defaults
         map_marker = "#1f1f1f"
+        map_tile_url = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+        map_tile_attr = "&copy; OpenStreetMap contributors &copy; CARTO"
 
 
 class font:

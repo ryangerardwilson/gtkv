@@ -8,8 +8,6 @@ from design_constants import colors_for
 
 LEAFLET_CSS_CDN = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
 LEAFLET_JS_CDN = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-TILE_URL = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-TILE_ATTR = "&copy; OpenStreetMap contributors &copy; CARTO"
 
 
 def render_map_html(source: str, ui_mode: str | None = None) -> str:
@@ -33,7 +31,7 @@ def render_map_html(source: str, ui_mode: str | None = None) -> str:
         "    <script>\n"
         f"      const userSource = {js_source};\n"
         "      const map = L.map('map', { zoomControl: false, attributionControl: true });\n"
-        f"      const tileLayer = L.tileLayer('{TILE_URL}', {{ attribution: '{TILE_ATTR}' }}).addTo(map);\n"
+        f"      const tileLayer = L.tileLayer('{palette.map_tile_url}', {{ attribution: '{palette.map_tile_attr}' }}).addTo(map);\n"
         "      Object.assign(window, { L, map, tileLayer });\n"
         "      try {\n"
         "        const fn = new Function('L', 'map', 'tileLayer', userSource);\n"
