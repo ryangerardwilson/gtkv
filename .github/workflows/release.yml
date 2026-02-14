@@ -36,7 +36,7 @@ jobs:
             quay.io/pypa/manylinux2014_x86_64 \
             bash -lc '
               set -euo pipefail
-              yum -y install curl zstd
+              yum -y install curl zstd rsync
               PY_URL=$(/opt/python/cp311-cp311/bin/python .github/scripts/find-python-url.py)
               test -n "$PY_URL"
               echo "Using python-build-standalone: $PY_URL"
