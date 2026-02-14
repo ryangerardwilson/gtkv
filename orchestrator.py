@@ -374,7 +374,16 @@ class Orchestrator:
         _load_css(Path(__file__).with_name("style.css"), next_mode)
         if self._state.document is not None and self._state.view is not None:
             self._state.view.set_ui_mode(next_mode, self._state.document)
+            self._rerender_python_blocks()
         self._show_status(f"Theme: {next_mode}", "success")
+
+    def _rerender_python_blocks(self) -> None:
+        document = self._state.document
+        if document is None:
+            return
+        for index, block in enumerate(document.blocks):
+            if isinstance(block, PythonImageBlock):
+                self._render_python_image(index)
 
     def _open_selected_block_editor(self) -> bool:
         if self._state.active_editor is not None:
