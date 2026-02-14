@@ -140,13 +140,13 @@ def _build_html(
         "      .block-toc a { color: inherit; text-decoration: none; }\n"
         "      .block-toc a:visited { color: inherit; }\n"
         "      .block-toc a:hover { text-decoration: underline; }\n"
+        f"      .toc-index {{ font-size: {font.export_h3}; font-weight: 600; color: var(--h3-color); margin-bottom: 4px; }}\n"
+        "      .toc-empty { color: var(--toc-color); }\n"
         "      .toc-line { display: block; line-height: 0.2; margin: 0; }\n"
         "      .toc-line.depth-2 { padding-left: 16px; }\n"
         "      .toc-line.depth-3 { padding-left: 32px; }\n"
         "      .block-pyimage { text-align: center; }\n"
         "      .block-pyimage img { max-width: 100%; height: auto; display: inline-block; }\n"
-        "      :root[data-theme=\"dark\"] .block-pyimage img.light { display: none; }\n"
-        "      :root[data-theme=\"light\"] .block-pyimage img.dark { display: none; }\n"
         "      :root[data-theme=\"dark\"] .block-pyimage img.light { display: none; }\n"
         "      :root[data-theme=\"light\"] .block-pyimage img.dark { display: none; }\n"
         "      .block-three canvas { width: 100%; height: 300px; display: block; }\n"
@@ -390,14 +390,18 @@ def _build_toc(document: BlockDocument) -> tuple[str, dict[int, str]]:
             headings.append((index, block.kind, text))
 
     if not headings:
-        return "Table of Contents\n\n(No headings yet)", heading_ids
+        return (
+            "<div class=\"toc-index\">Index</div>"
+            "<div class=\"toc-empty\">(No headings yet)</div>",
+            heading_ids,
+        )
 
-    lines = ["Table of Contents", ""]
+    lines = ["<div class=\"toc-index\">Index</div>"]
     for index, kind, text in headings:
         anchor = heading_ids.get(index)
         if not anchor:
             continue
-        anchor_link = f"<a href=\"#{anchor}\">{_escape_html(text)}</a>"
+        anchor_link = f"- <a href=\"#{anchor}\">{_escape_html(text)}</a>"
         if kind == "h1":
             lines.append(f"<div class=\"toc-line depth-1\">{anchor_link}</div>")
         elif kind == "h2":

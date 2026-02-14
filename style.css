@@ -43,6 +43,12 @@ window {
   color: var(--block-h3-color);
 }
 
+.toc-index-label {
+  font-size: var(--block-h3-size, 13px);
+  font-weight: 600;
+  color: var(--block-h3-color);
+}
+
 .block-text-toc textview {
   font-size: var(--block-toc-size, 11px);
   color: var(--block-toc-color);

@@ -48,6 +48,48 @@ class OutlineEntry:
     has_children: bool
 
 
+class _TocBlockView(Gtk.Frame):
+    def __init__(self, text: str) -> None:
+        super().__init__()
+        self.add_css_class("block")
+        self.add_css_class("block-text")
+        self.add_css_class("block-text-toc")
+
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        box.set_hexpand(True)
+        box.set_halign(Gtk.Align.FILL)
+        box.set_margin_top(12)
+        box.set_margin_bottom(12)
+        box.set_margin_start(12)
+        box.set_margin_end(12)
+
+        title = Gtk.Label(label="Index")
+        title.add_css_class("toc-index-label")
+        title.set_halign(Gtk.Align.START)
+        box.append(title)
+
+        self._text_view = Gtk.TextView()
+        self._text_view.set_monospace(True)
+        self._text_view.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
+        self._text_view.set_pixels_above_lines(0)
+        self._text_view.set_pixels_below_lines(0)
+        self._text_view.set_pixels_inside_wrap(0)
+        self._text_view.set_editable(False)
+        self._text_view.set_cursor_visible(False)
+        self._text_view.set_left_margin(0)
+        self._text_view.set_right_margin(0)
+
+        buffer = self._text_view.get_buffer()
+        buffer.set_text(text)
+        box.append(self._text_view)
+
+        self.set_child(box)
+
+    def set_text(self, text: str) -> None:
+        buffer = self._text_view.get_buffer()
+        buffer.set_text(text)
+
+
 class BlockEditorView(Gtk.Box):
     def __init__(self, ui_mode: str = "dark") -> None:
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=0)
@@ -170,7 +212,7 @@ class BlockEditorView(Gtk.Box):
         )
         for block, widget in zip(document.blocks, self._block_widgets):
             if isinstance(block, TextBlock) and block.kind == "toc":
-                if isinstance(widget, _TextBlockView):
+                if isinstance(widget, _TocBlockView):
                     widget.set_text(toc_text)
 
     def move_selection(self, delta: int) -> None:
@@ -768,8 +810,9 @@ class BlockEditorView(Gtk.Box):
     @staticmethod
     def _build_widget(block, toc_text: str, ui_mode: str) -> Gtk.Widget | None:
         if isinstance(block, TextBlock):
-            text = toc_text if block.kind == "toc" else block.text
-            return _TextBlockView(text, block.kind)
+            if block.kind == "toc":
+                return _TocBlockView(toc_text)
+            return _TextBlockView(block.text, block.kind)
         if isinstance(block, ThreeBlock):
             return _ThreeBlockView(block.source, ui_mode)
         if isinstance(block, PythonImageBlock):
@@ -1081,9 +1124,9 @@ def _build_toc(blocks: Sequence[TextBlock]) -> str:
                 headings.append((block.kind, text))
 
     if not headings:
-        return "Table of Contents\n\n(No headings yet)"
+        return "(No headings yet)"
 
-    lines = ["Table of Contents", ""]
+    lines = []
     for kind, text in headings:
         indent = ""
         if kind == "h2":
