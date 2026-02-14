@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import time
 from dataclasses import dataclass
 from typing import Sequence
 from pathlib import Path
@@ -86,9 +87,12 @@ class BlockEditorView(Gtk.Box):
         self._toc_visible_entries: list[int] = []
         self._toc_rows: list[Gtk.Widget] = []
         self._toc_selected_entry = 0
-        self._toc_collapsed: set[int] = set()
+        self._toc_expanded: set[int] = set()
         self._toc_scroll_before = 0.0
         self._toc_selected_before = 0
+        self._toc_leader_active = False
+        self._toc_leader_buffer = ""
+        self._toc_leader_start = 0.0
 
         self._status_timer_id: int | None = None
         self._scroll_idle_id: int | None = None
@@ -320,7 +324,7 @@ class BlockEditorView(Gtk.Box):
         self._toc_visible = True
         self._toc_scroll_before = self.get_scroll_position()
         self._toc_selected_before = self._selected_index
-        self._toc_collapsed = set()
+        self._toc_expanded = set()
         self._toc_entries = self._build_outline_entries(document)
         self._toc_selected_entry = 0
         if self._toc_entries:
@@ -350,6 +354,45 @@ class BlockEditorView(Gtk.Box):
     def handle_toc_drill_key(self, keyval: int) -> bool:
         if not self._toc_visible:
             return False
+        if self._toc_leader_active and time.monotonic() - self._toc_leader_start > 2.0:
+            self._toc_leader_active = False
+            self._toc_leader_buffer = ""
+        if keyval == ord(",") and not self._toc_leader_active:
+            self._toc_leader_active = True
+            self._toc_leader_buffer = ""
+            self._toc_leader_start = time.monotonic()
+            return True
+        if self._toc_leader_active:
+            if keyval == Gdk.KEY_Escape:
+                self._toc_leader_active = False
+                self._toc_leader_buffer = ""
+                return True
+            if 32 <= keyval <= 126:
+                self._toc_leader_buffer += chr(keyval)
+            else:
+                return True
+            if self._toc_leader_buffer == "xar":
+                self._toc_leader_active = False
+                self._toc_leader_buffer = ""
+                self._expand_all_toc()
+                return True
+            if self._toc_leader_buffer == "xr":
+                self._toc_leader_active = False
+                self._toc_leader_buffer = ""
+                self._toggle_selected_toc()
+                return True
+            if self._toc_leader_buffer == "xc":
+                self._toc_leader_active = False
+                self._toc_leader_buffer = ""
+                self._collapse_all_toc()
+                return True
+            if not any(
+                command.startswith(self._toc_leader_buffer)
+                for command in ("xar", "xr", "xc")
+            ):
+                self._toc_leader_active = False
+                self._toc_leader_buffer = ""
+            return True
         if keyval in (Gdk.KEY_Escape, ord("q"), ord("Q")):
             self.close_toc_drill(restore=True)
             return True
@@ -400,7 +443,9 @@ class BlockEditorView(Gtk.Box):
         title.set_halign(Gtk.Align.START)
         panel.append(title)
 
-        hint = Gtk.Label(label="hjkl navigate | Enter jump | Esc close")
+        hint = Gtk.Label(
+            label="j/k move | h/l drill | ,xar expand all | ,xr toggle | ,xc collapse | Enter jump"
+        )
         hint.add_css_class("toc-hint")
         hint.set_halign(Gtk.Align.START)
         panel.append(hint)
@@ -457,16 +502,18 @@ class BlockEditorView(Gtk.Box):
             self._toc_list.append(empty)
             return
 
-        collapsed_depths: list[int] = []
+        visible_set: set[int] = set()
         for i, entry in enumerate(self._toc_entries):
-            depth = entry.depth
-            while collapsed_depths and depth <= collapsed_depths[-1]:
-                collapsed_depths.pop()
-            if collapsed_depths:
+            if entry.depth == 0:
+                self._toc_visible_entries.append(i)
+                visible_set.add(i)
                 continue
-            self._toc_visible_entries.append(i)
-            if entry.has_children and entry.block_index in self._toc_collapsed:
-                collapsed_depths.append(depth)
+            parent_index = self._find_parent_entry_index(i)
+            if parent_index is None:
+                continue
+            if parent_index in visible_set and parent_index in self._toc_expanded:
+                self._toc_visible_entries.append(i)
+                visible_set.add(i)
 
         if self._toc_selected_entry not in self._toc_visible_entries:
             self._toc_selected_entry = self._toc_visible_entries[0]
@@ -478,9 +525,7 @@ class BlockEditorView(Gtk.Box):
             if entry_index == self._toc_selected_entry:
                 row.add_css_class("toc-row-selected")
 
-            marker = " "
-            if entry.has_children:
-                marker = ">" if entry.block_index in self._toc_collapsed else "v"
+            marker = ">" if entry.has_children else " "
             label = Gtk.Label(label=f"{marker} {entry.text}")
             label.add_css_class("toc-row-label")
             label.set_halign(Gtk.Align.START)
@@ -507,8 +552,8 @@ class BlockEditorView(Gtk.Box):
         entry = self._get_selected_toc_entry()
         if entry is None:
             return
-        if entry.has_children and entry.block_index not in self._toc_collapsed:
-            self._toc_collapsed.add(entry.block_index)
+        if entry.has_children and self._toc_selected_entry in self._toc_expanded:
+            self._toc_expanded.remove(self._toc_selected_entry)
             self._render_toc_entries()
             self._schedule_toc_scroll()
             return
@@ -522,8 +567,8 @@ class BlockEditorView(Gtk.Box):
         entry = self._get_selected_toc_entry()
         if entry is None:
             return
-        if entry.block_index in self._toc_collapsed:
-            self._toc_collapsed.remove(entry.block_index)
+        if entry.has_children and self._toc_selected_entry not in self._toc_expanded:
+            self._toc_expanded.add(self._toc_selected_entry)
             self._render_toc_entries()
             self._schedule_toc_scroll()
             return
@@ -532,6 +577,31 @@ class BlockEditorView(Gtk.Box):
             self._toc_selected_entry = child_index
             self._render_toc_entries()
             self._schedule_toc_scroll()
+
+    def _expand_all_toc(self) -> None:
+        self._toc_expanded = {
+            index
+            for index, entry in enumerate(self._toc_entries)
+            if entry.has_children
+        }
+        self._render_toc_entries()
+        self._schedule_toc_scroll()
+
+    def _collapse_all_toc(self) -> None:
+        self._toc_expanded = set()
+        self._render_toc_entries()
+        self._schedule_toc_scroll()
+
+    def _toggle_selected_toc(self) -> None:
+        entry = self._get_selected_toc_entry()
+        if entry is None or not entry.has_children:
+            return
+        if self._toc_selected_entry in self._toc_expanded:
+            self._toc_expanded.remove(self._toc_selected_entry)
+        else:
+            self._toc_expanded.add(self._toc_selected_entry)
+        self._render_toc_entries()
+        self._schedule_toc_scroll()
 
     def _find_parent_entry_index(self, entry_index: int) -> int | None:
         if entry_index <= 0:
