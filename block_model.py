@@ -25,10 +25,13 @@ class ThreeBlock:
 class PythonImageBlock:
     source: str
     format: str = "svg"
-    rendered_data: str | None = None
-    rendered_hash: str | None = None
+    rendered_data_dark: str | None = None
+    rendered_hash_dark: str | None = None
+    rendered_path_dark: str | None = None
+    rendered_data_light: str | None = None
+    rendered_hash_light: str | None = None
+    rendered_path_light: str | None = None
     last_error: str | None = None
-    rendered_path: str | None = None
 
 
 @dataclass(frozen=True)
@@ -142,20 +145,24 @@ class BlockDocument:
             self._blocks[index] = PythonImageBlock(
                 source,
                 format=block.format,
-                rendered_data=None,
-                rendered_hash=None,
+                rendered_data_dark=None,
+                rendered_hash_dark=None,
+                rendered_path_dark=None,
+                rendered_data_light=None,
+                rendered_hash_light=None,
+                rendered_path_light=None,
                 last_error=None,
-                rendered_path=None,
             )
             self._dirty = True
 
     def set_python_image_render(
         self,
         index: int,
-        rendered_data: str | None,
-        rendered_hash: str | None,
+        rendered_data_dark: str | None,
+        rendered_hash_dark: str | None,
+        rendered_data_light: str | None,
+        rendered_hash_light: str | None,
         last_error: str | None,
-        rendered_path: str | None,
     ) -> None:
         if index < 0 or index >= len(self._blocks):
             return
@@ -164,10 +171,13 @@ class BlockDocument:
             self._blocks[index] = PythonImageBlock(
                 block.source,
                 format=block.format,
-                rendered_data=rendered_data,
-                rendered_hash=rendered_hash,
+                rendered_data_dark=rendered_data_dark,
+                rendered_hash_dark=rendered_hash_dark,
+                rendered_path_dark=None,
+                rendered_data_light=rendered_data_light,
+                rendered_hash_light=rendered_hash_light,
+                rendered_path_light=None,
                 last_error=last_error,
-                rendered_path=rendered_path,
             )
             self._dirty = True
 

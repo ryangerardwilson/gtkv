@@ -379,7 +379,6 @@ class Orchestrator:
         if self._state.document is not None and self._state.view is not None:
             self._state.view.set_ui_mode(next_mode, self._state.document)
             self._rerender_map_blocks()
-            self._rerender_python_blocks()
         self._show_status(f"Theme: {next_mode}", "success")
 
     def _rerender_map_blocks(self) -> None:
@@ -391,13 +390,6 @@ class Orchestrator:
             if isinstance(block, MapBlock):
                 view.reload_media_at(index)
 
-    def _rerender_python_blocks(self) -> None:
-        document = self._state.document
-        if document is None:
-            return
-        for index, block in enumerate(document.blocks):
-            if isinstance(block, PythonImageBlock):
-                self._render_python_image(index)
 
     def _open_selected_block_editor(self) -> bool:
         if self._state.active_editor is not None:
@@ -496,21 +488,29 @@ class Orchestrator:
         if not python_path:
             document.set_python_image_render(
                 index,
-                rendered_data=None,
-                rendered_hash=None,
+                rendered_data_dark=None,
+                rendered_hash_dark=None,
+                rendered_data_light=None,
+                rendered_hash_light=None,
                 last_error="Python path not configured",
-                rendered_path=None,
             )
             view.set_document(document)
             return
 
-        result = py_runner.render_python_image(block.source, python_path, block.format)
+        dark = py_runner.render_python_image(
+            block.source, python_path, block.format, ui_mode="dark"
+        )
+        light = py_runner.render_python_image(
+            block.source, python_path, block.format, ui_mode="light"
+        )
+        error = dark.error or light.error
         document.set_python_image_render(
             index,
-            rendered_data=result.rendered_data,
-            rendered_hash=result.rendered_hash,
-            last_error=result.error,
-            rendered_path=None,
+            rendered_data_dark=dark.rendered_data,
+            rendered_hash_dark=dark.rendered_hash,
+            rendered_data_light=light.rendered_data,
+            rendered_hash_light=light.rendered_hash,
+            last_error=error,
         )
         view.set_document(document)
 

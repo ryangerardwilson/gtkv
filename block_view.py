@@ -816,7 +816,7 @@ class BlockEditorView(Gtk.Box):
         if isinstance(block, ThreeBlock):
             return _ThreeBlockView(block.source, ui_mode)
         if isinstance(block, PythonImageBlock):
-            return _PyImageBlockView(block)
+            return _PyImageBlockView(block, ui_mode)
         if isinstance(block, LatexBlock):
             return _LatexBlockView(block.source, ui_mode)
         if isinstance(block, MapBlock):
@@ -931,7 +931,7 @@ class _ThreeBlockView(Gtk.Frame):
 
 
 class _PyImageBlockView(Gtk.Frame):
-    def __init__(self, block: PythonImageBlock) -> None:
+    def __init__(self, block: PythonImageBlock, ui_mode: str) -> None:
         super().__init__()
         self.add_css_class("block")
         self.add_css_class("block-image")
@@ -939,7 +939,16 @@ class _PyImageBlockView(Gtk.Frame):
         self.set_hexpand(True)
         self.set_halign(Gtk.Align.FILL)
 
-        path = block.rendered_path or _materialize_pyimage(block)
+        if ui_mode == "light":
+            rendered_data = block.rendered_data_light
+            rendered_hash = block.rendered_hash_light
+            rendered_path = block.rendered_path_light
+        else:
+            rendered_data = block.rendered_data_dark
+            rendered_hash = block.rendered_hash_dark
+            rendered_path = block.rendered_path_dark
+
+        path = rendered_path or _materialize_pyimage(rendered_data, rendered_hash)
         if path and os.path.exists(path):
             picture = Gtk.Picture.new_for_filename(path)
             picture.set_can_shrink(True)
@@ -991,7 +1000,7 @@ class _LatexBlockView(Gtk.Frame):
             self.set_child(label)
             return
 
-        view = WebKit.WebView()
+        view = WebKit.WebView()  # type: ignore[union-attr]
         settings = view.get_settings()
         if settings is not None:
             if hasattr(settings, "set_enable_javascript"):
@@ -1163,18 +1172,20 @@ def _apply_block_padding(widget: Gtk.Widget, padding: int = 12) -> None:
     widget.set_margin_end(padding)
 
 
-def _materialize_pyimage(block: PythonImageBlock) -> str | None:
-    if not block.rendered_data:
+def _materialize_pyimage(
+    rendered_data: str | None, rendered_hash: str | None
+) -> str | None:
+    if not rendered_data:
         return None
     cache_root = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
     cache_dir = cache_root / "gtkv" / "pyimage"
     cache_dir.mkdir(parents=True, exist_ok=True)
-    digest_source = block.rendered_hash or block.rendered_data
+    digest_source = rendered_hash or rendered_data
     digest = hashlib.sha256(digest_source.encode("utf-8")).hexdigest()[:16]
     extension = ".svg"
     image_path = cache_dir / f"pyimage-{digest}{extension}"
     try:
-        image_path.write_text(block.rendered_data, encoding="utf-8")
+        image_path.write_text(rendered_data, encoding="utf-8")
     except (OSError, ValueError):
         return None
     return image_path.as_posix()
