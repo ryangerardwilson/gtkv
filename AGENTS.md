@@ -33,7 +33,7 @@ need to recreate Vim modes internally.
   - `block_view.py` for GTK rendering + navigation
   - `document_io.py` for persistence routing
   - `persistence_text.py` for text `.docv` load/save
-  - `config.py` for user config (Python path)
+  - `config.py` for user config (Python path + UI mode)
   - `py_runner.py` for Python render execution
   - `export_html.py` for HTML export
   - `latex_template.py` for KaTeX HTML boilerplate
@@ -78,13 +78,13 @@ Renders the document as GTK blocks, overlays, and tracks selection/navigation.
 Text-based `.docv` persistence (git-friendly).
 
 ### `py_runner.py`
-Runs Python render blocks and returns SVG output.
+Runs Python render blocks and returns SVG output (mode-aware colors).
 
 ### `export_html.py`
-Exports `.docv` files to a dark HTML page with CDN assets.
+Exports `.docv` files to an HTML page with light/dark toggle.
 
 ### `map_template.py`
-Leaflet map HTML boilerplate (dark tile layer).
+Leaflet map HTML boilerplate (theme-aware tiles).
 
 ### `style.css`
 Visual styling for the block UI.

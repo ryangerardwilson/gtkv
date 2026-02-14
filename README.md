@@ -83,16 +83,15 @@ python main.py
 - `q` / `Ctrl+X` — exit without saving.
 - `-v` — print installed version.
 - `-u` — upgrade to the latest release.
-- `-e output.html doc.docv` — export a document to HTML.
+- `-e [output.html] doc.docv` — export to HTML (defaults to same basename).
 - `-q` — quickstart a new document with demo content.
 - `-h` — show CLI help.
 
 ### Theme assumptions
 
-The GTK UI uses transparent backgrounds and light text. It is intentionally
-optimized for dark terminals and dark desktops. For best contrast, run `gtkv`
-with a black or near-black terminal background. On light themes the UI will
-look washed out because the text colors are tuned for dark surfaces.
+The GTK UI ships with a dark/light theme toggle (` ,m `). Colors and font sizes
+come from `design_constants.py`. The window background uses a translucent
+overlay based on the active theme.
 
 ### Leader commands
 
@@ -127,8 +126,8 @@ The installer drops a completion script into
 - Python render output is rendered at runtime (not embedded).
 - LaTeX blocks render via KaTeX in a WebKit view with local assets.
 - Image blocks are not supported in the text `.docv` format.
-- HTML export uses CDN assets for Three.js and KaTeX, and embeds Python renders as base64 SVG.
-- Map blocks render GeoJSON via Leaflet with a dark tile layer (CDN assets).
+- HTML export uses CDN assets for Three.js and KaTeX, embeds Python renders as base64 SVG, and adds a light/dark toggle in the top-right.
+- Map blocks render GeoJSON via Leaflet with theme-aware tiles.
 
 ---
 
@@ -136,7 +135,7 @@ The installer drops a completion script into
 
 ### Three.js blocks
 
-Insert a block with `,js` and write module JS. The runtime provides `THREE`,
+Insert a block with `,bjs` and write module JS. The runtime provides `THREE`,
 `scene`, `camera`, `renderer`, and `canvas` as globals.
 
 Scope and expectations:
@@ -168,10 +167,10 @@ animate();
 
 ### Python render blocks
 
-Insert a block with `,py`. Configure the Python path on first launch. Your code
+Insert a block with `,bpy`. Configure the Python path on first launch. Your code
 must write an SVG to `__gtkv__.renderer`.
 
-Defaults applied by the renderer to match the dark UI:
+Defaults applied by the renderer to match the active UI mode:
 
 - Matplotlib rcParams set text/axes/tick colors to `#d0d0d0`.
 - Figure and axes backgrounds are transparent.
@@ -190,7 +189,7 @@ fig.savefig(__gtkv__.renderer, format="svg", dpi=200, transparent=True, bbox_inc
 
 ### LaTeX blocks
 
-Insert a block with `,ltx` and write raw LaTeX. KaTeX renders it via WebKit.
+Insert a block with `,bltx` and write raw LaTeX. KaTeX renders it via WebKit.
 
 ```
 \int_0^\infty e^{-x^2} dx = \frac{\sqrt{\pi}}{2}
@@ -198,7 +197,7 @@ Insert a block with `,ltx` and write raw LaTeX. KaTeX renders it via WebKit.
 
 ### Map blocks
 
-Insert a block with `,map` and write Leaflet JS. The runtime provides `L`,
+Insert a block with `,bmap` and write Leaflet JS. The runtime provides `L`,
 `map`, and `tileLayer` globals.
 
 ```js
@@ -246,15 +245,15 @@ format: svg
 
 ### HTML export
 
-Export a document to a self-contained HTML page with a dark theme:
+Export a document to a self-contained HTML page (toggleable light/dark):
 
 ```bash
-gtkv -e output.html doc.docv
+gtkv -e [output.html] doc.docv
 ```
 
 - Three.js and KaTeX load from CDN to keep the HTML lean.
 - Python renders are executed on export and embedded as base64 SVG.
-- The exported page supports `j/k` scrolling.
+- The exported page supports `j/k` scrolling and a light/dark toggle.
 
 ---
 
