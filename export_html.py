@@ -140,7 +140,7 @@ def _build_html(
         "      .block-toc a { color: inherit; text-decoration: none; }\n"
         "      .block-toc a:visited { color: inherit; }\n"
         "      .block-toc a:hover { text-decoration: underline; }\n"
-        "      .toc-line { display: block; }\n"
+        "      .toc-line { display: block; line-height: 0.2; margin: 0; }\n"
         "      .toc-line.depth-2 { padding-left: 16px; }\n"
         "      .toc-line.depth-3 { padding-left: 32px; }\n"
         "      .block-pyimage { text-align: center; }\n"
