@@ -39,7 +39,11 @@ def insert_text_block(state: AppState, kind: str = "body") -> bool:
 def insert_toc_block(state: AppState) -> bool:
     if state.document is None or state.view is None:
         return False
-    state.document.remove_text_blocks_by_kind("toc")
+    for index, block in enumerate(state.document.blocks):
+        if isinstance(block, TextBlock) and block.kind == "toc":
+            state.view.set_selected_index(index)
+            state.view.center_on_index(index)
+            return True
     insert_at = state.view.get_selected_index()
     state.document.insert_block_after(insert_at, TextBlock("", kind="toc"))
     state.view.set_document(state.document)

@@ -709,7 +709,7 @@ def _three_module_uri() -> str:
 def _build_toc(blocks: Sequence[TextBlock]) -> str:
     headings = []
     for block in blocks:
-        if isinstance(block, TextBlock) and block.kind in {"title", "h1", "h2", "h3"}:
+        if isinstance(block, TextBlock) and block.kind in {"h1", "h2", "h3"}:
             text = block.text.strip().splitlines()[0] if block.text.strip() else ""
             if text:
                 headings.append((block.kind, text))

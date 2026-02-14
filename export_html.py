@@ -214,7 +214,7 @@ def _js_string(value: str) -> str:
 def _build_toc(document: BlockDocument) -> str:
     headings = []
     for block in document.blocks:
-        if isinstance(block, TextBlock) and block.kind in {"title", "h1", "h2", "h3"}:
+        if isinstance(block, TextBlock) and block.kind in {"h1", "h2", "h3"}:
             text = block.text.strip().splitlines()[0] if block.text.strip() else ""
             if text:
                 headings.append((block.kind, text))
