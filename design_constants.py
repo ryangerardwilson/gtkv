@@ -159,7 +159,7 @@ class font:
     """Font size tokens for GTK and export HTML."""
 
     # GTK block text sizes (style.css)
-    block_text = "12px"
+    block_text = "11px"
     block_title = "22px"
     block_h1 = "18px"
     block_h2 = "15px"
