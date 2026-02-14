@@ -112,8 +112,8 @@ class BlockEditorView(Gtk.Box):
         self._overlay.set_hexpand(True)
         self._overlay.set_vexpand(True)
         self._overlay.set_child(self._scroller)
-        self._overlay.add_overlay(self._help_panel)
         self._overlay.add_overlay(self._toc_panel)
+        self._overlay.add_overlay(self._help_panel)
 
         self.append(self._overlay)
         self.append(self._status_bar)
@@ -393,6 +393,9 @@ class BlockEditorView(Gtk.Box):
                 self._toc_leader_active = False
                 self._toc_leader_buffer = ""
             return True
+        if keyval in (ord("?"), Gdk.KEY_question):
+            self.toggle_help()
+            return True
         if keyval in (Gdk.KEY_Escape, ord("q"), ord("Q")):
             self.close_toc_drill(restore=True)
             return True
@@ -438,17 +441,10 @@ class BlockEditorView(Gtk.Box):
         panel.set_margin_start(12)
         panel.set_margin_end(12)
 
-        title = Gtk.Label(label="Outline")
+        title = Gtk.Label(label="Table of Contents")
         title.add_css_class("toc-title")
         title.set_halign(Gtk.Align.START)
         panel.append(title)
-
-        hint = Gtk.Label(
-            label="j/k move | h/l drill | ,xar expand all | ,xr toggle | ,xc collapse | Enter jump"
-        )
-        hint.add_css_class("toc-hint")
-        hint.set_halign(Gtk.Align.START)
-        panel.append(hint)
 
         scroller = Gtk.ScrolledWindow()
         scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
