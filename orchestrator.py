@@ -138,6 +138,9 @@ class Orchestrator:
     def _handle_doc_keys(self, keyval, state) -> bool:
         if self._state.view is not None and self._state.view.toc_drill_active():
             return self._state.view.handle_toc_drill_key(keyval)
+        if self._leader_active:
+            if self._handle_leader_keys(keyval, state):
+                return True
         if self._handle_delete_keys(keyval, state):
             return True
         if self._handle_yank_keys(keyval, state):
