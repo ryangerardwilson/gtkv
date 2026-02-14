@@ -57,15 +57,17 @@ python main.py
 ## Usage
 
 - `gtkv doc.docv` — open an existing document (required).
-- `,n` — insert a normal text block.
-- `,ht` — insert a title block.
-- `,h1` / `,h2` / `,h3` — insert heading blocks.
-- `,toc` — insert a table of contents block.
-- `,js` — insert a 3D block and edit its Three.js module JS in Vim.
-- `,py` — insert a Python render block (SVG output).
-- `,ltx` — insert a LaTeX block rendered with KaTeX.
-- `,map` — insert a map block (Leaflet JS).
+- `,bn` — insert a normal text block.
+- `,bht` — insert a title block.
+- `,bh1` / `,bh2` / `,bh3` — insert heading blocks.
+- `,btoc` — insert a table of contents block.
+- `,bjs` — insert a 3D block and edit its Three.js module JS in Vim.
+- `,bpy` — insert a Python render block (SVG output).
+- `,bltx` — insert a LaTeX block rendered with KaTeX.
+- `,bmap` — insert a map block (Leaflet JS).
 - `j/k` — move between blocks.
+- `,j` — jump to the first block.
+- `,k` — jump to the last block.
 - `Ctrl+j/k` — move the selected block up/down.
 - `dd` — delete the selected block.
 - `yy` — yank the selected block.
@@ -91,16 +93,16 @@ look washed out because the text colors are tuned for dark surfaces.
 
 ### Leader commands
 
-Leader is `,` followed by a short token:
+Leader is `,` followed by a short token. Block commands are prefixed with `b`:
 
-- `,n` normal text
-- `,ht` title
-- `,h1` / `,h2` / `,h3` headings
-- `,toc` table of contents
-- `,js` Three.js block
-- `,py` Python render block
-- `,ltx` LaTeX block
-- `,map` map block
+- `,bn` normal text
+- `,bht` title
+- `,bh1` / `,bh2` / `,bh3` headings
+- `,btoc` table of contents
+- `,bjs` Three.js block
+- `,bpy` Python render block
+- `,bltx` LaTeX block
+- `,bmap` map block
 
 ### Bash completion
 

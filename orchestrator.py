@@ -286,34 +286,40 @@ class Orchestrator:
         else:
             return True
 
-        if self._leader_buffer == "js":
+        if self._leader_buffer == "j":
+            self._leader_active = False
+            return actions.select_last(self._state)
+        if self._leader_buffer == "k":
+            self._leader_active = False
+            return actions.select_first(self._state)
+        if self._leader_buffer == "bjs":
             self._leader_active = False
             return self._insert_three_block()
-        if self._leader_buffer == "py":
+        if self._leader_buffer == "bpy":
             self._leader_active = False
             return self._insert_python_image_block()
-        if self._leader_buffer == "ltx":
+        if self._leader_buffer == "bltx":
             self._leader_active = False
             return self._insert_latex_block()
-        if self._leader_buffer == "map":
+        if self._leader_buffer == "bmap":
             self._leader_active = False
             return self._insert_map_block()
-        if self._leader_buffer == "ht":
+        if self._leader_buffer == "bht":
             self._leader_active = False
             return actions.insert_text_block(self._state, kind="title")
-        if self._leader_buffer == "h1":
+        if self._leader_buffer == "bh1":
             self._leader_active = False
             return actions.insert_text_block(self._state, kind="h1")
-        if self._leader_buffer == "h2":
+        if self._leader_buffer == "bh2":
             self._leader_active = False
             return actions.insert_text_block(self._state, kind="h2")
-        if self._leader_buffer == "h3":
+        if self._leader_buffer == "bh3":
             self._leader_active = False
             return actions.insert_text_block(self._state, kind="h3")
-        if self._leader_buffer == "n":
+        if self._leader_buffer == "bn":
             self._leader_active = False
             return actions.insert_text_block(self._state, kind="body")
-        if self._leader_buffer == "toc":
+        if self._leader_buffer == "btoc":
             self._leader_active = False
             return actions.insert_toc_block(self._state)
         return True
