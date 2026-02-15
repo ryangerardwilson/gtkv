@@ -558,6 +558,7 @@ class BlockEditorView(Gtk.Box):
             return
         self._vault_visible = False
         self._vault_panel.set_visible(False)
+        self._clear_vault_clipboard()
 
     def handle_vault_key(self, keyval: int) -> VaultAction:
         if not self._vault_visible:
@@ -841,6 +842,27 @@ class BlockEditorView(Gtk.Box):
             return True
         return root in target.parents
 
+    def _clear_vault_clipboard(self) -> None:
+        if self._vault_clipboard_mode != "cut" or self._vault_clipboard_path is None:
+            self._vault_clipboard_mode = None
+            self._vault_clipboard_path = None
+            self._vault_clipboard_name = None
+            return
+        try:
+            if self._vault_clipboard_path.exists():
+                if self._vault_clipboard_path.is_dir():
+                    shutil.rmtree(self._vault_clipboard_path)
+                else:
+                    self._vault_clipboard_path.unlink()
+        except OSError:
+            pass
+        self._vault_clipboard_mode = None
+        self._vault_clipboard_path = None
+        self._vault_clipboard_name = None
+
+    def _vault_cut_storage_dir(self, root: Path) -> Path:
+        return root / ".gtkv_cut"
+
     def _vault_unique_path(self, target: Path) -> Path:
         if not target.exists():
             return target
@@ -863,10 +885,24 @@ class BlockEditorView(Gtk.Box):
         if entry.kind not in {"dir", "file"}:
             self.show_status("Nothing to cut", "error")
             return
+        if self._vault_root is None:
+            self.show_status("No vault open", "error")
+            return
+        cut_name = entry.label.rstrip("/")
+        storage_dir = self._vault_cut_storage_dir(self._vault_root)
+        target = self._vault_unique_path(storage_dir / cut_name)
+        try:
+            storage_dir.mkdir(parents=True, exist_ok=True)
+            shutil.move(entry.path.as_posix(), target.as_posix())
+        except OSError:
+            self.show_status("Cut failed", "error")
+            return
         self._vault_clipboard_mode = "cut"
-        self._vault_clipboard_path = entry.path
-        self._vault_clipboard_name = entry.label.rstrip("/")
-        self.show_status(f"Cut: {self._vault_clipboard_name}", "success")
+        self._vault_clipboard_path = target
+        self._vault_clipboard_name = cut_name
+        self.show_status(f"Cut: {cut_name}", "success")
+        self._vault_selected = 0
+        self._render_vault_entries()
 
     def _vault_copy_selected(self) -> None:
         entry = self._get_selected_vault_entry()
@@ -889,10 +925,20 @@ class BlockEditorView(Gtk.Box):
             self.show_status("No vault open", "error")
             return
         source = self._vault_clipboard_path
-        destination = self._vault_unique_path(self._vault_path / source.name)
+        if self._vault_clipboard_mode == "cut" and self._vault_clipboard_name:
+            destination_base = self._vault_path / self._vault_clipboard_name
+        else:
+            destination_base = self._vault_path / source.name
+        destination = self._vault_unique_path(destination_base)
         root = self._vault_root.resolve()
         if not self._vault_path_in_root(destination.resolve(), root):
             self.show_status("Path must stay in vault", "error")
+            return
+        if not source.exists():
+            self.show_status("Clipboard missing", "error")
+            self._vault_clipboard_mode = None
+            self._vault_clipboard_path = None
+            self._vault_clipboard_name = None
             return
         if source.is_dir() and self._vault_path_in_root(
             destination.resolve(), source.resolve()
@@ -923,11 +969,18 @@ class BlockEditorView(Gtk.Box):
             children = list(path.iterdir())
         except OSError:
             return []
+        cut_path = (
+            self._vault_clipboard_path
+            if self._vault_clipboard_mode == "cut"
+            else None
+        )
         dirs: list[VaultEntry] = []
         files: list[VaultEntry] = []
         for child in children:
             name = child.name
             if name.startswith("."):
+                continue
+            if cut_path is not None and child == cut_path:
                 continue
             if child.is_dir():
                 dirs.append(VaultEntry(path=child, label=f"{name}/", kind="dir"))
