@@ -53,6 +53,10 @@ class colors:
         vault_row_selected_border = "rgba(255, 255, 255, 0.06)"
         vault_row_label = "#d2d2d2"
         vault_empty = "#8f8f8f"
+        vault_entry_background = "rgba(20, 20, 20, 0.9)"
+        vault_entry_border = "rgba(255, 255, 255, 0.12)"
+        vault_entry_text = "#e0e0e0"
+        vault_entry_placeholder = "#8f8f8f"
 
         # Status bar (GTK)
         status_background = "rgba(12, 12, 12, 0.95)"
@@ -147,6 +151,10 @@ class colors:
         vault_row_selected_border = "rgba(0, 0, 0, 0.06)"
         vault_row_label = "#2a2a2a"
         vault_empty = "#666666"
+        vault_entry_background = "rgba(255, 255, 255, 0.95)"
+        vault_entry_border = "rgba(0, 0, 0, 0.12)"
+        vault_entry_text = "#1f1f1f"
+        vault_entry_placeholder = "#777777"
 
         # Status bar (GTK)
         status_background = "rgba(245, 245, 245, 0.96)"

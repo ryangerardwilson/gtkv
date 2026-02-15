@@ -158,6 +158,8 @@ class Orchestrator:
                 self._close_vault_mode()
             elif action.close:
                 self._close_vault_mode()
+            if action.toggle_theme:
+                self._toggle_ui_mode()
             return action.handled
 
         return self._handle_doc_keys(keyval, state)
@@ -651,6 +653,10 @@ def _load_css(css_path: Path, ui_mode: str) -> None:
     variables += f"  --vault-row-size: {font.vault_row};\n"
     variables += f"  --vault-empty-color: {palette.vault_empty};\n"
     variables += f"  --vault-empty-size: {font.vault_empty};\n"
+    variables += f"  --vault-entry-background: {palette.vault_entry_background};\n"
+    variables += f"  --vault-entry-border: {palette.vault_entry_border};\n"
+    variables += f"  --vault-entry-text: {palette.vault_entry_text};\n"
+    variables += f"  --vault-entry-placeholder: {palette.vault_entry_placeholder};\n"
     variables += f"  --status-background: {palette.status_background};\n"
     variables += f"  --status-border: {palette.status_border};\n"
     variables += f"  --status-text-color: {palette.status_text};\n"

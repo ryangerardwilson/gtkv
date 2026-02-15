@@ -208,6 +208,18 @@ window {
   padding: 8px 4px;
 }
 
+.vault-entry {
+  background: var(--vault-entry-background);
+  border: 1px solid var(--vault-entry-border);
+  color: var(--vault-entry-text);
+  padding: 6px 8px;
+  border-radius: 10px;
+}
+
+.vault-entry placeholder {
+  color: var(--vault-entry-placeholder);
+}
+
 .status-bar {
   background: var(--status-background);
   border-top: 1px solid var(--status-border);

@@ -62,6 +62,7 @@ class VaultAction:
     handled: bool
     opened_path: Path | None = None
     close: bool = False
+    toggle_theme: bool = False
 
 
 class _TocBlockView(Gtk.Frame):
@@ -596,7 +597,13 @@ class BlockEditorView(Gtk.Box):
                 self._vault_leader_buffer = ""
                 self._start_vault_create()
                 return VaultAction(True)
-            if not "n".startswith(self._vault_leader_buffer):
+            if self._vault_leader_buffer == "m":
+                self._vault_leader_active = False
+                self._vault_leader_buffer = ""
+                return VaultAction(True, toggle_theme=True)
+            if not any(
+                command.startswith(self._vault_leader_buffer) for command in ("n", "m")
+            ):
                 self._vault_leader_active = False
                 self._vault_leader_buffer = ""
             return VaultAction(True)
@@ -696,6 +703,7 @@ class BlockEditorView(Gtk.Box):
         create_entry.set_placeholder_text("New file or directory")
         create_entry.set_hexpand(True)
         create_entry.set_visible(False)
+        create_entry.add_css_class("vault-entry")
         panel.append(create_entry)
 
         scroller = Gtk.ScrolledWindow()
