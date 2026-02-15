@@ -106,8 +106,13 @@ class Orchestrator:
                 self._state.document.set_path(document_path)
             if document_path is None and not self._demo:
                 vaults = [path for path in config.get_vaults() if path.exists()]
-                if vaults and not any(_vault_has_docs(path) for path in vaults):
-                    self._open_vault_on_start = True
+                if vaults:
+                    project_root = _find_project_root()
+                    root_in_vaults = project_root in vaults if project_root else False
+                    if root_in_vaults and _vault_has_docs(project_root):
+                        self._open_vault_on_start = True
+                    elif not any(_vault_has_docs(path) for path in vaults):
+                        self._open_vault_on_start = True
 
         app = BlockApp(self)
         _load_css(Path(__file__).with_name("style.css"), self._ui_mode or "dark")
