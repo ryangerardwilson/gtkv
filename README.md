@@ -129,6 +129,7 @@ current directory. Press `,v` to open vault mode, navigate with `h/j/k/l`, and
 press `Escape` to return to document mode. In vault mode, press `,n` to create
 a new `.docv` file (with extension) or a new folder (no extension). If all
 registered vaults have no `.docv` files, the app opens in vault mode.
+In vault mode, `yy` copies, `dd` cuts, and `p` pastes into the current folder.
 
 ## Notes
 

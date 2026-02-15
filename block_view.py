@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import shutil
 import time
 from dataclasses import dataclass
 from typing import Sequence
@@ -165,6 +166,11 @@ class BlockEditorView(Gtk.Box):
         self._vault_leader_buffer = ""
         self._vault_leader_start = 0.0
         self._vault_create_active = False
+        self._vault_pending_key: str | None = None
+        self._vault_pending_start = 0.0
+        self._vault_clipboard_mode: str | None = None
+        self._vault_clipboard_path: Path | None = None
+        self._vault_clipboard_name: str | None = None
 
         self._status_timer_id: int | None = None
         self._scroll_idle_id: int | None = None
@@ -556,6 +562,8 @@ class BlockEditorView(Gtk.Box):
     def handle_vault_key(self, keyval: int) -> VaultAction:
         if not self._vault_visible:
             return VaultAction(False)
+        if self._vault_pending_key and time.monotonic() - self._vault_pending_start > 1.2:
+            self._vault_pending_key = None
         if self._vault_leader_active and time.monotonic() - self._vault_leader_start > 2.0:
             self._vault_leader_active = False
             self._vault_leader_buffer = ""
@@ -591,6 +599,24 @@ class BlockEditorView(Gtk.Box):
                 self._vault_leader_active = False
                 self._vault_leader_buffer = ""
             return VaultAction(True)
+        if keyval in (ord("d"), ord("D"), ord("y"), ord("Y")):
+            action_key = "d" if keyval in (ord("d"), ord("D")) else "y"
+            if self._vault_pending_key == action_key:
+                self._vault_pending_key = None
+                if action_key == "d":
+                    self._vault_cut_selected()
+                else:
+                    self._vault_copy_selected()
+                return VaultAction(True)
+            self._vault_pending_key = action_key
+            self._vault_pending_start = time.monotonic()
+            return VaultAction(True)
+        if keyval in (ord("p"), ord("P")):
+            self._vault_pending_key = None
+            self._vault_paste_clipboard()
+            return VaultAction(True)
+        if self._vault_pending_key is not None:
+            self._vault_pending_key = None
         if keyval == Gdk.KEY_Escape:
             return VaultAction(True, close=True)
         if keyval in (ord("j"), ord("J")):
@@ -786,12 +812,10 @@ class BlockEditorView(Gtk.Box):
             return False
         target = (self._vault_path / text).resolve()
         root = self._vault_root.resolve()
-        if target != root and root not in target.parents:
+        if not self._vault_path_in_root(target, root):
             self.show_status("Path must stay in vault", "error")
             return False
-        if target.exists():
-            self.show_status("Already exists", "error")
-            return False
+        target = self._vault_unique_path(target)
         if target.suffix == ".docv":
             try:
                 target.parent.mkdir(parents=True, exist_ok=True)
@@ -811,6 +835,88 @@ class BlockEditorView(Gtk.Box):
         self._render_vault_entries()
         self._vault_panel.grab_focus()
         return True
+
+    def _vault_path_in_root(self, target: Path, root: Path) -> bool:
+        if target == root:
+            return True
+        return root in target.parents
+
+    def _vault_unique_path(self, target: Path) -> Path:
+        if not target.exists():
+            return target
+        suffix = target.suffix
+        stem = target.stem if suffix else target.name
+        parent = target.parent
+        index = 1
+        while True:
+            name = f"{stem}_{index}{suffix}"
+            candidate = parent / name
+            if not candidate.exists():
+                return candidate
+            index += 1
+
+    def _vault_cut_selected(self) -> None:
+        entry = self._get_selected_vault_entry()
+        if entry is None:
+            self.show_status("Nothing to cut", "error")
+            return
+        if entry.kind not in {"dir", "file"}:
+            self.show_status("Nothing to cut", "error")
+            return
+        self._vault_clipboard_mode = "cut"
+        self._vault_clipboard_path = entry.path
+        self._vault_clipboard_name = entry.label.rstrip("/")
+        self.show_status(f"Cut: {self._vault_clipboard_name}", "success")
+
+    def _vault_copy_selected(self) -> None:
+        entry = self._get_selected_vault_entry()
+        if entry is None:
+            self.show_status("Nothing to copy", "error")
+            return
+        if entry.kind not in {"dir", "file"}:
+            self.show_status("Nothing to copy", "error")
+            return
+        self._vault_clipboard_mode = "copy"
+        self._vault_clipboard_path = entry.path
+        self._vault_clipboard_name = entry.label.rstrip("/")
+        self.show_status(f"Copied: {self._vault_clipboard_name}", "success")
+
+    def _vault_paste_clipboard(self) -> None:
+        if not self._vault_clipboard_mode or self._vault_clipboard_path is None:
+            self.show_status("Nothing to paste", "error")
+            return
+        if self._vault_root is None or self._vault_path is None:
+            self.show_status("No vault open", "error")
+            return
+        source = self._vault_clipboard_path
+        destination = self._vault_unique_path(self._vault_path / source.name)
+        root = self._vault_root.resolve()
+        if not self._vault_path_in_root(destination.resolve(), root):
+            self.show_status("Path must stay in vault", "error")
+            return
+        if source.is_dir() and self._vault_path_in_root(
+            destination.resolve(), source.resolve()
+        ):
+            self.show_status("Cannot paste into itself", "error")
+            return
+        try:
+            if self._vault_clipboard_mode == "cut":
+                shutil.move(source.as_posix(), destination.as_posix())
+                self._vault_clipboard_mode = None
+                self._vault_clipboard_path = None
+                self._vault_clipboard_name = None
+            else:
+                if source.is_dir():
+                    shutil.copytree(source.as_posix(), destination.as_posix())
+                else:
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(source.as_posix(), destination.as_posix())
+            self.show_status("Pasted", "success")
+        except OSError:
+            self.show_status("Paste failed", "error")
+            return
+        self._vault_selected = 0
+        self._render_vault_entries()
 
     def _collect_vault_entries(self, path: Path) -> list[VaultEntry]:
         try:
@@ -1189,6 +1295,9 @@ class BlockEditorView(Gtk.Box):
             "  h/l        up/enter",
             "  Enter      open",
             "  ,n         new file/dir",
+            "  yy         copy",
+            "  dd         cut",
+            "  p          paste",
             "  Esc        back to document",
             "",
             "Blocks",
