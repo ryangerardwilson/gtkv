@@ -108,9 +108,13 @@ class Orchestrator:
                 vaults = [path for path in config.get_vaults() if path.exists()]
                 if vaults:
                     project_root = _find_project_root()
-                    root_in_vaults = project_root in vaults if project_root else False
-                    if root_in_vaults and _vault_has_docs(project_root):
-                        self._open_vault_on_start = True
+                    if project_root is not None:
+                        root_in_vaults = project_root in vaults
+                    else:
+                        root_in_vaults = False
+                    if project_root is not None and root_in_vaults:
+                        if _vault_has_docs(project_root):
+                            self._open_vault_on_start = True
                     elif not any(_vault_has_docs(path) for path in vaults):
                         self._open_vault_on_start = True
 
@@ -484,6 +488,9 @@ class Orchestrator:
             return
         view = self._state.view
         if view is None:
+            return
+        if kind == "text":
+            view.update_text_at(index, updated_text)
             return
         view.reload_media_at(index)
 

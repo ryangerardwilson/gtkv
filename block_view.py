@@ -307,6 +307,17 @@ class BlockEditorView(Gtk.Box):
                 return False
         return False
 
+    def update_text_at(self, index: int, text: str) -> bool:
+        if not self._block_widgets:
+            return False
+        if index < 0 or index >= len(self._block_widgets):
+            return False
+        widget = self._block_widgets[index]
+        if isinstance(widget, _TextBlockView):
+            widget.set_text(text)
+            return True
+        return False
+
     def set_selected_index(self, index: int, scroll: bool = True) -> None:
         if not self._block_widgets:
             return
