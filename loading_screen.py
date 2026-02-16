@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import random
+
 from gi.repository import Gdk, GLib, Gtk  # type: ignore[import-not-found, attr-defined]
 
 from ascii_logo import ASCII_LOGO
@@ -33,7 +35,7 @@ class LoadingScreen:
         self._overlay.add_overlay(self._build_loading_panel())
         self._container.append(self._overlay)
 
-        GLib.timeout_add(2000, self._mark_min_elapsed)
+        GLib.timeout_add(4000, self._mark_min_elapsed)
 
     @property
     def container(self) -> Gtk.Widget:
@@ -92,7 +94,7 @@ class LoadingScreen:
 
         self._rain_widget = rain
         self._loading_panel = panel
-        self._rain_columns: list[int] = []
+        self._rain_columns: list[dict[str, float]] = []
         GLib.timeout_add(45, self._tick_matrix)
         return panel
 
@@ -103,8 +105,18 @@ class LoadingScreen:
         return True
 
     def _draw_matrix(self, _area: Gtk.DrawingArea, cr, width: int, height: int) -> None:
-        if not self._rain_columns or len(self._rain_columns) != max(1, width // 14):
-            self._rain_columns = [0 for _ in range(max(1, width // 14))]
+        column_count = max(1, width // 14)
+        if not self._rain_columns or len(self._rain_columns) != column_count:
+            self._rain_columns = []
+            for _ in range(column_count):
+                self._rain_columns.append(
+                    {
+                        "y": random.uniform(-height, 0),
+                        "speed": random.uniform(8.0, 22.0),
+                        "trail": random.randint(4, 10),
+                        "delay": random.uniform(0.0, 400.0),
+                    }
+                )
 
         palette = colors_for(self._ui_mode)
         bg_rgba = Gdk.RGBA()
@@ -118,13 +130,24 @@ class LoadingScreen:
         dim_rgba = Gdk.RGBA()
         dim_rgba.parse(palette.loading_rain_secondary)
 
-        for idx in range(len(self._rain_columns)):
+        for idx, drop in enumerate(self._rain_columns):
             x = idx * 14
-            y = self._rain_columns[idx]
-            cr.set_source_rgba(dim_rgba.red, dim_rgba.green, dim_rgba.blue, 0.7)
-            cr.rectangle(x, y - 20, 6, 6)
-            cr.fill()
-            cr.set_source_rgba(fg_rgba.red, fg_rgba.green, fg_rgba.blue, 0.9)
+            if drop["delay"] > 0:
+                drop["delay"] -= 45.0
+                continue
+            y = drop["y"]
+            trail = int(drop["trail"])
+            for step in range(trail):
+                alpha = max(0.15, 0.8 - (step / max(1, trail)))
+                cr.set_source_rgba(dim_rgba.red, dim_rgba.green, dim_rgba.blue, alpha)
+                cr.rectangle(x, y - (step * 12), 6, 6)
+                cr.fill()
+            cr.set_source_rgba(fg_rgba.red, fg_rgba.green, fg_rgba.blue, 0.95)
             cr.rectangle(x, y, 6, 6)
             cr.fill()
-            self._rain_columns[idx] = (y + 16) % max(1, height)
+            drop["y"] = y + drop["speed"]
+            if drop["y"] > height + (trail * 12):
+                drop["y"] = random.uniform(-height, 0)
+                drop["speed"] = random.uniform(8.0, 22.0)
+                drop["trail"] = random.randint(4, 10)
+                drop["delay"] = random.uniform(0.0, 300.0)
