@@ -257,6 +257,33 @@ class BlockEditorView(Gtk.Box):
             if isinstance(block, TextBlock) and block.kind == "toc":
                 if isinstance(widget, _TocBlockView):
                     widget.set_text(toc_text)
+        if not self._toc_visible:
+            return
+        selected_block_index = None
+        selected_entry = self._get_selected_toc_entry()
+        if selected_entry is not None:
+            selected_block_index = selected_entry.block_index
+        expanded_block_indices = set()
+        for entry_index in self._toc_expanded:
+            if 0 <= entry_index < len(self._toc_entries):
+                expanded_block_indices.add(self._toc_entries[entry_index].block_index)
+        self._toc_entries = self._build_outline_entries(document)
+        self._toc_expanded = {
+            index
+            for index, entry in enumerate(self._toc_entries)
+            if entry.has_children and entry.block_index in expanded_block_indices
+        }
+        if selected_block_index is not None:
+            for index, entry in enumerate(self._toc_entries):
+                if entry.block_index == selected_block_index:
+                    self._toc_selected_entry = index
+                    break
+            else:
+                self._toc_selected_entry = 0
+        else:
+            self._toc_selected_entry = 0
+        self._render_toc_entries()
+        self._schedule_toc_scroll()
 
     def move_selection(self, delta: int) -> None:
         if not self._block_widgets:

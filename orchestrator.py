@@ -502,6 +502,14 @@ class Orchestrator:
             return
         if kind == "text":
             view.update_text_at(index, updated_text)
+            document = self._state.document
+            if document is None:
+                return
+            if index < 0 or index >= len(document.blocks):
+                return
+            block = document.blocks[index]
+            if isinstance(block, TextBlock) and block.kind in {"title", "h1", "h2", "h3"}:
+                view.refresh_toc(document)
             return
         view.reload_media_at(index)
 
