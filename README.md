@@ -184,23 +184,42 @@ animate();
 ### Python render blocks
 
 Insert a block with `,bpy`. Configure the Python path on first launch. Your
-code must write an SVG to `__gvim__.renderer`.
+code runs in a small helper runtime and must write an SVG to
+`__gvim__.renderer`. The runtime injects helpers and defaults that make quick
+plots easy.
 
-Defaults applied by the renderer to match the active UI mode:
+Runtime surface:
 
-- Matplotlib rcParams set text/axes/tick colors to `#d0d0d0`.
+- `__gvim__.renderer` — absolute output path for the SVG.
+- `__gvim__.format` — currently always `"svg"`.
+- `plot_coord(*coords, title=None)` — plot a list of `(x, y)` points.
+- `plot_func(x, *y_funcs, title=None, **named_y)` — plot one or more series
+  from sequences or callables; named series are rendered in sorted key order.
+
+Plot defaults applied by the renderer:
+
+- Matplotlib rcParams set text/axes/tick colors to the active UI theme.
 - Figure and axes backgrounds are transparent.
-- Saved SVGs are post-processed to replace black fills/strokes with `#d0d0d0`.
+- `plot_func` draws x/y axes at 0 and enables a grid.
+- Output is forced to SVG; black fills/strokes are replaced with theme text
+  color to stay readable on dark backgrounds.
 
-If you override colors, prefer light tones so plots stay readable on dark
-backgrounds.
+Examples:
 
 ```python
-import matplotlib.pyplot as plt
+plot_coord((0, 0), (1, 2), (2, 1), title="Points")
+```
 
-fig, ax = plt.subplots()
-ax.plot([0, 1, 2], [0, 1, 0.5])
-fig.savefig(__gvim__.renderer, format="svg", dpi=200, transparent=True, bbox_inches="tight")
+```python
+import numpy as np
+
+x = np.linspace(-5, 5, 100)
+plot_func(
+    x,
+    lambda x: 0.5 * x + 1,
+    y2=lambda x: 0.3 * x + 2,
+    title="My Plot",
+)
 ```
 
 ### LaTeX blocks
