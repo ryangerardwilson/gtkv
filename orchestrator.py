@@ -102,6 +102,7 @@ class Orchestrator:
             if self._ui_mode:
                 config.set_ui_mode(self._ui_mode)
 
+        cwd_vault_root = _find_config_vault_for_path(Path.cwd())
         if document_path is not None and document_path.exists():
             vault_root = _find_config_vault_for_path(document_path)
             if vault_root is None:
@@ -119,10 +120,11 @@ class Orchestrator:
                 self._state.document = BlockDocument([])
             if document_path is not None:
                 self._state.document.set_path(document_path)
+                self._active_vault_root = cwd_vault_root
             if document_path is None and not self._demo:
                 vaults = [path for path in config.get_vaults() if path.exists()]
                 if vaults:
-                    self._active_vault_root = _find_config_vault_for_path(Path.cwd())
+                    self._active_vault_root = cwd_vault_root
                     self._open_vault_on_start = True
 
         app = BlockApp(self)
