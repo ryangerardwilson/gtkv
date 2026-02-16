@@ -102,6 +102,13 @@ class Orchestrator:
                 config.set_ui_mode(self._ui_mode)
 
         if document_path is not None and document_path.exists():
+            vault_root = _find_vault_root_for_path(document_path)
+            if vault_root is None:
+                print(
+                    "This file is not inside a gvim vault. Initialize a vault in the project root with 'gvim init', then re-run this command.",
+                    file=sys.stderr,
+                )
+                return 1
             self._state.document = document_io.load(document_path)
         else:
             if self._demo:
@@ -965,6 +972,14 @@ def _run_init() -> int:
 
 def _find_project_root() -> Path | None:
     current = Path.cwd()
+    for candidate in [current, *current.parents]:
+        if (candidate / "__init__.gvim").exists():
+            return candidate
+    return None
+
+
+def _find_vault_root_for_path(path: Path) -> Path | None:
+    current = path.parent
     for candidate in [current, *current.parents]:
         if (candidate / "__init__.gvim").exists():
             return candidate
