@@ -313,12 +313,13 @@ def sample_document() -> BlockDocument:
                 kind="body",
             ),
             PythonImageBlock(
-                "import matplotlib.pyplot as plt\n"
-                "\n"
-                "fig, ax = plt.subplots()\n"
-                "ax.plot([0, 1, 2], [0, 1, 0.5])\n"
-                'ax.set_title("Sample plot")\n'
-                'fig.savefig(__gtkv__.renderer, format="svg", dpi=200, transparent=True, bbox_inches="tight")\n',
+                "import numpy as np\n"
+                "plot_func(\n"
+                "    x=np.linspace(-5, 5, 100),\n"
+                "    y1=lambda x: 0.5 * x + 1,\n"
+                "    y2=lambda x: 0.3 * x + 2,\n"
+                "    title=\"My Plot\"\n"
+                ")\n",
                 format="svg",
             ),
             TextBlock(

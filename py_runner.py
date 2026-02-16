@@ -88,9 +88,11 @@ def _build_runner_script(
     render_format: str,
     ui_mode: str | None = None,
 ) -> str:
+    module_root = Path(__file__).resolve().parent.as_posix()
     palette = colors_for(ui_mode or config.get_ui_mode() or "dark")
     return (
         "from types import SimpleNamespace\n"
+        "import sys\n"
         "import matplotlib as _mpl\n"
         "_mpl.rcParams.update({\n"
         f"    'text.color': '{palette.py_render_text}',\n"
@@ -105,11 +107,15 @@ def _build_runner_script(
         "    'figure.facecolor': 'none',\n"
         "    'savefig.transparent': True,\n"
         "})\n"
+        f"sys.path.insert(0, {module_root!r})\n"
         f"__gtkv__ = SimpleNamespace(renderer={output_path.as_posix()!r}, format={render_format!r})\n"
+        "import pyimg_api as _pyimg_api\n"
+        "_pyimg_api.__gtkv__ = __gtkv__\n"
+        "from pyimg_api import plot_coord, plot_func\n"
         f"_source = {source_path.as_posix()!r}\n"
         "with open(_source, 'r', encoding='utf-8') as _file:\n"
         "    _code = _file.read()\n"
-        "_globals = {'__gtkv__': __gtkv__}\n"
+        "_globals = {'__gtkv__': __gtkv__, 'plot_coord': plot_coord, 'plot_func': plot_func}\n"
         "exec(compile(_code, _source, 'exec'), _globals)\n"
     )
 

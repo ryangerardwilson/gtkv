@@ -290,21 +290,45 @@ _MAP_GUIDANCE = (
 )
 
 _PY_GUIDANCE = (
+    "import numpy as np\n"
+    "plot_func(\n"
+    "    x=np.linspace(-5, 5, 100),\n"
+    "    y1=lambda x: 0.5 * x + 1,\n"
+    "    y2=lambda x: 0.3 * x + 2,\n"
+    "    title=\"My Plot\"\n"
+    ")\n"
+    "\n"
     '"""\n'
-    "Theme note: colors are set globally by your UI mode (dark/light).\n"
-    "Override locally by setting explicit colors in this block.\n"
-    "Defaults applied: matplotlib text/ticks/axes colors and transparent figure.\n"
+    "HELPER DOCS \n"
+    "-----------\n"
     "\n"
-    "Example: Non-interfering snippet that looks great in the UI\n"
-    "```\n"
-    "import matplotlib.pyplot as plt\n"
+    "plot_coord((2, 3), (4, 5), title=\"My Plot\")\n"
+    "# Types: \n"
+    "- plot_coord: coords = tuple[float, float]\n"
+    "- title = str | None\n"
     "\n"
-    "fig, ax = plt.subplots()\n"
-    "ax.plot([0, 1, 2], [0, 1, 0.5])\n"
-    'ax.set_title("Sample plot")\n'
-    'fig.savefig(__gtkv__.renderer, format="svg", dpi=200, transparent=True, bbox_inches="tight")\n'
-    "```\n"
+    "plot_func(\n"
+    "    x=np.linspace(-5, 5, 100),\n"
+    "    y1=lambda x: 0.5 * x + 1,\n"
+    "    y2=lambda x: 0.3 * x + 2,\n"
+    "    y3_custom_name=lambda x: 0.4 * x + 4,\n"
+    "    title=\"My Plot\"\n"
+    ")\n"
+    "# Types: \n"
+    "- plot_func: x = sequence[float] \n"
+    "- y* = sequence[float] or callable(x) -> sequence[float]\n"
+    "- title = str | None\n"
     '"""\n\n'
+)
+
+_PY_SAMPLE = (
+    "import numpy as np\n"
+    "plot_func(\n"
+    "    x=np.linspace(-5, 5, 100),\n"
+    "    y1=lambda x: 0.5 * x + 1,\n"
+    "    y2=lambda x: 0.3 * x + 2,\n"
+    "    title=\"My Plot\"\n"
+    ")\n"
 )
 
 
@@ -315,6 +339,9 @@ def _prepend_guidance(kind: str, content: str) -> str:
         guidance = _MAP_GUIDANCE
     else:
         guidance = _THREE_GUIDANCE
-    if content.lstrip().startswith(guidance.strip()):
+    stripped = content.lstrip()
+    if stripped.startswith(guidance.strip()):
         return content
+    if kind == "pyimage" and stripped.startswith(_PY_SAMPLE.strip()):
+        return guidance
     return f"{guidance}{content}"
