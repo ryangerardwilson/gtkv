@@ -202,7 +202,10 @@ class BlockEditorView(Gtk.Box):
         self.append(self._overlay)
         self.append(self._status_bar)
 
+        self._document: BlockDocument | None = None
+
     def set_document(self, document: BlockDocument) -> None:
+        self._document = document
         for child in list(self._column):
             self._column.remove(child)
 
@@ -310,6 +313,14 @@ class BlockEditorView(Gtk.Box):
         if index < 0 or index >= len(self._block_widgets):
             return False
         widget = self._block_widgets[index]
+        if isinstance(widget, _PyImageBlockView):
+            document = self._document
+            if document is None:
+                return False
+            block = document.blocks[index]
+            if isinstance(block, PythonImageBlock):
+                widget.update_block(block, self._ui_mode)
+                return True
         if hasattr(widget, "reload_html"):
             try:
                 widget.reload_html()
@@ -328,6 +339,34 @@ class BlockEditorView(Gtk.Box):
             widget.set_text(text)
             return True
         return False
+
+    def set_pyimage_pending(self, index: int) -> bool:
+        if not self._block_widgets:
+            return False
+        if index < 0 or index >= len(self._block_widgets):
+            return False
+        widget = self._block_widgets[index]
+        if not isinstance(widget, _PyImageBlockView):
+            return False
+        document = self._document
+        if document is None:
+            return False
+        block = document.blocks[index]
+        if not isinstance(block, PythonImageBlock):
+            return False
+        pending = PythonImageBlock(
+            block.source,
+            format=block.format,
+            rendered_data_dark=None,
+            rendered_hash_dark=None,
+            rendered_path_dark=None,
+            rendered_data_light=None,
+            rendered_hash_light=None,
+            rendered_path_light=None,
+            last_error=None,
+        )
+        widget.update_block(pending, self._ui_mode)
+        return True
 
     def set_selected_index(self, index: int, scroll: bool = True) -> None:
         if not self._block_widgets:
@@ -1642,6 +1681,19 @@ class _PyImageBlockView(Gtk.Frame):
         self.set_hexpand(True)
         self.set_halign(Gtk.Align.FILL)
 
+        if ui_mode == "light":
+            rendered_data = block.rendered_data_light
+            rendered_hash = block.rendered_hash_light
+            rendered_path = block.rendered_path_light
+        else:
+            rendered_data = block.rendered_data_dark
+            rendered_hash = block.rendered_hash_dark
+            rendered_path = block.rendered_path_dark
+
+        path = rendered_path or _materialize_pyimage(rendered_data, rendered_hash)
+        self.update_block(block, ui_mode)
+
+    def update_block(self, block: PythonImageBlock, ui_mode: str) -> None:
         if ui_mode == "light":
             rendered_data = block.rendered_data_light
             rendered_hash = block.rendered_hash_light

@@ -289,7 +289,10 @@ _MAP_GUIDANCE = (
     "*/\n\n"
 )
 
+_PY_GUIDANCE_MARKER = "# GTKV_PYIMAGE_GUIDE"
+
 _PY_GUIDANCE = (
+    f"{_PY_GUIDANCE_MARKER}\n"
     "import numpy as np\n"
     "plot_func(\n"
     "    x=np.linspace(-5, 5, 100),\n"
@@ -340,6 +343,8 @@ def _prepend_guidance(kind: str, content: str) -> str:
     else:
         guidance = _THREE_GUIDANCE
     stripped = content.lstrip()
+    if kind == "pyimage" and _PY_GUIDANCE_MARKER in content:
+        return content
     if kind == "pyimage" and "LAST RUNTIME ERROR:" in content:
         return content
     if stripped.startswith(guidance.strip()):

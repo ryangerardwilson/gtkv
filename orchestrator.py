@@ -490,6 +490,8 @@ class Orchestrator:
     def _handle_editor_update(self, index: int, kind: str, updated_text: str) -> None:
         actions.update_block_from_editor(self._state, index, kind, updated_text)
         if kind == "pyimage":
+            if self._state.view is not None:
+                self._state.view.set_pyimage_pending(index)
             self._render_python_image(index)
             return
         view = self._state.view
@@ -591,7 +593,7 @@ class Orchestrator:
             rendered_hash_light=light.rendered_hash,
             last_error=error,
         )
-        view.set_document(document)
+        view.reload_media_at(index)
 
     def _inject_pyimage_error(self, index: int, error: str) -> None:
         document = self._state.document
