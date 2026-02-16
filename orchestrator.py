@@ -966,14 +966,12 @@ def _run_init() -> int:
             return 0
         if vault in root_resolved.parents:
             print(
-                "This directory is already inside a configured vault. Run 'gvim init' at the vault root instead.",
-                file=sys.stderr,
+                "Cannot initialize a vault here: this directory is already inside a configured vault. Run 'gvim init' at the vault root instead.",
             )
             return 1
         if root_resolved in vault.parents:
             print(
-                "This directory contains a configured vault. Remove the nested vault before initializing here.",
-                file=sys.stderr,
+                "Cannot initialize a vault here: this directory contains a configured vault. Remove the nested vault before initializing here.",
             )
             return 1
     added = config.add_vault(root)
