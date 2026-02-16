@@ -30,6 +30,7 @@ class LoadingScreen:
         self._content_holder.set_vexpand(True)
         self._content_holder.set_halign(Gtk.Align.FILL)
         self._content_holder.set_valign(Gtk.Align.FILL)
+        self._content_holder.set_visible(False)
 
         self._overlay.set_child(self._content_holder)
         self._overlay.add_overlay(self._build_loading_panel())
@@ -59,6 +60,7 @@ class LoadingScreen:
         if not (self._min_elapsed and self._ready):
             return
         self._loading_panel.set_visible(False)
+        self._content_holder.set_visible(True)
 
     def _build_loading_panel(self) -> Gtk.Widget:
         panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -121,7 +123,9 @@ class LoadingScreen:
         palette = colors_for(self._ui_mode)
         bg_rgba = Gdk.RGBA()
         bg_rgba.parse(palette.loading_background)
-        cr.set_source_rgba(bg_rgba.red, bg_rgba.green, bg_rgba.blue, 1.0)
+        cr.set_source_rgba(
+            bg_rgba.red, bg_rgba.green, bg_rgba.blue, bg_rgba.alpha
+        )
         cr.rectangle(0, 0, width, height)
         cr.fill()
 

@@ -60,7 +60,7 @@ class colors:
         vault_entry_focus = "rgba(255, 255, 255, 0.18)"
 
         # Loading overlay
-        loading_background = "#060b08"
+        loading_background = "rgba(0, 0, 0, 0.0)"
         loading_rain_primary = "#e6e6e6"
         loading_rain_secondary = "#bdbdbd"
         loading_ascii = "#f0f0f0"
@@ -165,7 +165,7 @@ class colors:
         vault_entry_focus = "rgba(0, 0, 0, 0.2)"
 
         # Loading overlay
-        loading_background = "#f4faf7"
+        loading_background = "rgba(255, 255, 255, 0.0)"
         loading_rain_primary = "#2b2b2b"
         loading_rain_secondary = "#6b6b6b"
         loading_ascii = "#1f1f1f"
