@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import threading
 import os
 import subprocess
 import sys
@@ -59,6 +60,7 @@ class Orchestrator:
         self._mode = "document"
         self._open_vault_on_start = False
         self._pyimage_error_cache: dict[int, str] = {}
+        self._pyimage_render_tokens: dict[int, int] = {}
         self._leader_active = False
         self._leader_buffer = ""
         self._leader_start = 0.0
@@ -492,7 +494,7 @@ class Orchestrator:
         if kind == "pyimage":
             if self._state.view is not None:
                 self._state.view.set_pyimage_pending(index)
-            GLib.idle_add(lambda: (self._render_python_image(index) or False))
+            self._start_python_image_render(index)
             return
         view = self._state.view
         if view is None:
@@ -577,6 +579,62 @@ class Orchestrator:
         light = py_runner.render_python_image(
             block.source, python_path, block.format, ui_mode="light"
         )
+        self._apply_python_image_render(index, block.source, dark, light)
+
+    def _start_python_image_render(self, index: int) -> None:
+        document = self._state.document
+        if document is None:
+            return
+        if index < 0 or index >= len(document.blocks):
+            return
+        block = document.blocks[index]
+        if not isinstance(block, PythonImageBlock):
+            return
+        token = self._pyimage_render_tokens.get(index, 0) + 1
+        self._pyimage_render_tokens[index] = token
+        source = block.source
+        render_format = block.format
+        python_path = self._python_path
+        if not python_path:
+            self._render_python_image(index)
+            return
+
+        def _run() -> None:
+            dark = py_runner.render_python_image(
+                source, python_path, render_format, ui_mode="dark"
+            )
+            light = py_runner.render_python_image(
+                source, python_path, render_format, ui_mode="light"
+            )
+            GLib.idle_add(
+                lambda: self._apply_python_image_render(index, source, dark, light, token)
+            )
+
+        thread = threading.Thread(target=_run, daemon=True)
+        thread.start()
+
+    def _apply_python_image_render(
+        self,
+        index: int,
+        source: str,
+        dark: py_runner.RenderResult,
+        light: py_runner.RenderResult,
+        token: int | None = None,
+    ) -> None:
+        current = self._pyimage_render_tokens.get(index)
+        if token is not None and current is not None and token != current:
+            return
+        document = self._state.document
+        view = self._state.view
+        if document is None or view is None:
+            return
+        if index < 0 or index >= len(document.blocks):
+            return
+        block = document.blocks[index]
+        if not isinstance(block, PythonImageBlock):
+            return
+        if block.source != source:
+            return
         error = dark.error or light.error
         if error:
             self._pyimage_error_cache[index] = error

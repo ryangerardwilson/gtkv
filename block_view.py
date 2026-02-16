@@ -319,6 +319,7 @@ class BlockEditorView(Gtk.Box):
                 return False
             block = document.blocks[index]
             if isinstance(block, PythonImageBlock):
+                widget.set_pending(False, block)
                 widget.update_block(block, self._ui_mode)
                 return True
         if hasattr(widget, "reload_html"):
@@ -354,6 +355,7 @@ class BlockEditorView(Gtk.Box):
         block = document.blocks[index]
         if not isinstance(block, PythonImageBlock):
             return False
+        widget.set_pending(True, block)
         pending = PythonImageBlock(
             block.source,
             format=block.format,
@@ -1675,25 +1677,19 @@ class _ThreeBlockView(Gtk.Frame):
 class _PyImageBlockView(Gtk.Frame):
     def __init__(self, block: PythonImageBlock, ui_mode: str) -> None:
         super().__init__()
+        self._ui_mode = ui_mode
+        self._pending = False
         self.add_css_class("block")
         self.add_css_class("block-image")
         self.add_css_class("block-pyimage")
         self.set_hexpand(True)
         self.set_halign(Gtk.Align.FILL)
-
-        if ui_mode == "light":
-            rendered_data = block.rendered_data_light
-            rendered_hash = block.rendered_hash_light
-            rendered_path = block.rendered_path_light
-        else:
-            rendered_data = block.rendered_data_dark
-            rendered_hash = block.rendered_hash_dark
-            rendered_path = block.rendered_path_dark
-
-        path = rendered_path or _materialize_pyimage(rendered_data, rendered_hash)
         self.update_block(block, ui_mode)
 
     def update_block(self, block: PythonImageBlock, ui_mode: str) -> None:
+        if self._pending:
+            self._set_pending_label(block)
+            return
         if ui_mode == "light":
             rendered_data = block.rendered_data_light
             rendered_hash = block.rendered_hash_light
@@ -1723,7 +1719,17 @@ class _PyImageBlockView(Gtk.Frame):
             self.set_child(box)
             return
 
-        label_text = "Python render pending"
+        self._set_pending_label(block)
+
+    def set_pending(self, pending: bool, block: PythonImageBlock) -> None:
+        self._pending = pending
+        if pending:
+            self._set_pending_label(block)
+        else:
+            self.update_block(block, self._ui_mode)
+
+    def _set_pending_label(self, block: PythonImageBlock) -> None:
+        label_text = "Rendering"
         if block.last_error:
             label_text = "Python render error (see editor)"
         label = Gtk.Label(label=label_text)
