@@ -60,6 +60,7 @@ class Orchestrator:
         self._ui_mode: str | None = None
         self._mode = "document"
         self._open_vault_on_start = False
+        self._active_vault_root: Path | None = None
         self._pyimage_error_cache: dict[int, str] = {}
         self._pyimage_render_tokens: dict[int, int] = {}
         self._startup_loading: LoadingScreen | None = None
@@ -109,6 +110,7 @@ class Orchestrator:
                     file=sys.stderr,
                 )
                 return 1
+            self._active_vault_root = vault_root
             self._state.document = document_io.load(document_path)
         else:
             if self._demo:
@@ -120,6 +122,7 @@ class Orchestrator:
             if document_path is None and not self._demo:
                 vaults = [path for path in config.get_vaults() if path.exists()]
                 if vaults:
+                    self._active_vault_root = _find_config_vault_for_path(Path.cwd())
                     self._open_vault_on_start = True
 
         app = BlockApp(self)
@@ -445,7 +448,10 @@ class Orchestrator:
             return True
         if self._state.view is None:
             return False
-        vaults = [path for path in config.get_vaults() if path.exists()]
+        if self._active_vault_root is not None:
+            vaults = [self._active_vault_root]
+        else:
+            vaults = [path for path in config.get_vaults() if path.exists()]
         if not vaults:
             self._show_status("No vaults registered", "error")
             return True
@@ -952,6 +958,24 @@ def _get_version() -> str:
 
 def _run_init() -> int:
     root = Path.cwd()
+    vaults = [path.resolve() for path in config.get_vaults() if path.exists()]
+    root_resolved = root.resolve()
+    for vault in vaults:
+        if root_resolved == vault:
+            print(f"Vault already registered: {root}")
+            return 0
+        if vault in root_resolved.parents:
+            print(
+                "This directory is already inside a configured vault. Run 'gvim init' at the vault root instead.",
+                file=sys.stderr,
+            )
+            return 1
+        if root_resolved in vault.parents:
+            print(
+                "This directory contains a configured vault. Remove the nested vault before initializing here.",
+                file=sys.stderr,
+            )
+            return 1
     added = config.add_vault(root)
     if added:
         print(f"Vault registered: {root}")
