@@ -1030,7 +1030,7 @@ def _run_init() -> int:
         _git_commit_sync(root)
         if not _git_push(root):
             return 1
-        print("GitHub Actions workflow added to sync HTML on main.")
+        print("GitHub Pages workflow added. Set Pages source to GitHub Actions.")
     return 0
 
 
@@ -1188,7 +1188,7 @@ def _git_push(root: Path) -> bool:
 def _prompt_pages_setup() -> bool:
     try:
         answer = input(
-            "Set up GitHub Actions HTML sync on main (public site)? (y/N): "
+            "Set up GitHub Pages deployment (public site)? (y/N): "
         ).strip()
     except EOFError:
         return False
@@ -1212,30 +1212,36 @@ def _setup_pages_workflow(root: Path) -> bool:
 
 def _pages_workflow_yaml() -> str:
     return (
-        "name: Sync HTML\n"
+        "name: Deploy Pages\n"
         "on:\n"
         "  push:\n"
         "    branches: [main]\n"
-        "  workflow_dispatch:\n"
         "permissions:\n"
-        "  contents: write\n"
+        "  contents: read\n"
+        "  pages: write\n"
+        "  id-token: write\n"
+        "concurrency:\n"
+        "  group: pages\n"
+        "  cancel-in-progress: false\n"
         "jobs:\n"
-        "  sync:\n"
-        "    if: ${{ github.actor != 'github-actions[bot]' }}\n"
+        "  deploy:\n"
         "    runs-on: ubuntu-latest\n"
+        "    environment:\n"
+        "      name: github-pages\n"
+        "      url: ${{ steps.deployment.outputs.page_url }}\n"
         "    steps:\n"
         "      - uses: actions/checkout@v4\n"
+        "      - uses: actions/setup-python@v5\n"
+        "        with:\n"
+        "          python-version: '3.x'\n"
         "      - name: Export HTML\n"
-        "        run: gvim -e\n"
-        "      - name: Commit HTML\n"
-        "        run: |\n"
-        "          if git status --porcelain | grep -q .; then\n"
-        "            git add .\n"
-        "            git -c user.name=\"github-actions[bot]\" -c user.email=\"github-actions[bot]@users.noreply.github.com\" commit -m \"sync [skip ci]\"\n"
-        "            git push\n"
-        "          else\n"
-        "            echo \"No changes to commit.\"\n"
-        "          fi\n"
+        "        run: python export_cli.py\n"
+        "      - uses: actions/configure-pages@v5\n"
+        "      - uses: actions/upload-pages-artifact@v3\n"
+        "        with:\n"
+        "          path: .\n"
+        "      - id: deployment\n"
+        "        uses: actions/deploy-pages@v4\n"
     )
 
 
