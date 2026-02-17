@@ -400,6 +400,9 @@ Export all `.gvim` documents under the current vault:
 gvim -e
 ```
 
+This generates an `index.html` at the vault root that lists the exported site
+tree.
+
 - Three.js and KaTeX load from CDN to keep the HTML lean.
 - Python renders are executed on export and embedded as base64 SVG.
 - The exported page supports `j/k` scrolling and a light/dark toggle.

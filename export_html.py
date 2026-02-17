@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import re
+from urllib.parse import quote
 from pathlib import Path
 
 import py_runner
@@ -33,6 +34,18 @@ def export_document(
 ) -> None:
     html = _build_html(document, python_path, ui_mode)
     output_path.write_text(html, encoding="utf-8")
+
+
+def export_vault_index(
+    root: Path,
+    html_paths: list[Path],
+    ui_mode: str = "dark",
+    title: str | None = None,
+) -> None:
+    rel_paths = [path.relative_to(root) for path in html_paths]
+    index_title = title or f"GVIM Index - {root.name}"
+    html = _build_index_html(rel_paths, ui_mode, index_title)
+    (root / "index.html").write_text(html, encoding="utf-8")
 
 
 def _build_html(document: BlockDocument, python_path: str | None, ui_mode: str) -> str:
@@ -458,3 +471,177 @@ def _slugify_heading(text: str) -> str:
             prev_dash = True
     slug_text = "".join(slug).strip("-")
     return slug_text or "section"
+
+
+def _build_index_html(paths: list[Path], ui_mode: str, title: str) -> str:
+    dark = colors_for("dark")
+    light = colors_for("light")
+    tree = _build_index_tree(paths)
+    tree_html = _render_index_tree(tree, is_root=True)
+    safe_title = _escape_html(title)
+    return (
+        "<!doctype html>\n"
+        f'<html data-theme="{ui_mode}">\n'
+        "  <head>\n"
+        '    <meta charset="utf-8" />\n'
+        '    <meta name="viewport" content="width=device-width, initial-scale=1" />\n'
+        f"    <title>{safe_title}</title>\n"
+        "    <style>\n"
+        "      :root {\n"
+        "        color-scheme: light dark;\n"
+        "      }\n"
+        '      :root[data-theme="dark"] {\n'
+        f"        --body-background: {dark.export_body_background};\n"
+        f"        --body-text: {dark.export_body_text};\n"
+        f"        --title-color: {dark.export_title};\n"
+        f"        --link-color: {dark.export_body};\n"
+        f"        --muted-color: {dark.export_toc};\n"
+        f"        --toggle-bg: {dark.export_toggle_bg};\n"
+        f"        --toggle-text: {dark.export_toggle_text};\n"
+        f"        --toggle-border: {dark.export_toggle_border};\n"
+        f"        --toggle-active-bg: {dark.export_toggle_active_bg};\n"
+        f"        --toggle-active-text: {dark.export_toggle_active_text};\n"
+        "      }\n"
+        '      :root[data-theme="light"] {\n'
+        f"        --body-background: {light.export_body_background};\n"
+        f"        --body-text: {light.export_body_text};\n"
+        f"        --title-color: {light.export_title};\n"
+        f"        --link-color: {light.export_body};\n"
+        f"        --muted-color: {light.export_toc};\n"
+        f"        --toggle-bg: {light.export_toggle_bg};\n"
+        f"        --toggle-text: {light.export_toggle_text};\n"
+        f"        --toggle-border: {light.export_toggle_border};\n"
+        f"        --toggle-active-bg: {light.export_toggle_active_bg};\n"
+        f"        --toggle-active-text: {light.export_toggle_active_text};\n"
+        "      }\n"
+        "      body {\n"
+        "        margin: 0;\n"
+        "        background: var(--body-background);\n"
+        "        color: var(--body-text);\n"
+        "        font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;\n"
+        "      }\n"
+        "      main {\n"
+        "        max-width: 960px;\n"
+        "        margin: 32px auto;\n"
+        "        padding: 0 24px 80px;\n"
+        "      }\n"
+        f"      h1 {{ font-size: {font.export_title}; color: var(--title-color); margin: 0 0 16px; }}\n"
+        f"      .index-tree {{ font-size: {font.export_body}; }}\n"
+        "      ul { list-style: none; margin: 0; padding-left: 18px; }\n"
+        "      li { margin: 6px 0; }\n"
+        "      .dir-name { color: var(--muted-color); font-weight: 600; }\n"
+        "      a { color: var(--link-color); text-decoration: none; }\n"
+        "      a:hover { text-decoration: underline; }\n"
+        "      .theme-toggle {\n"
+        "        position: fixed;\n"
+        "        top: 16px;\n"
+        "        right: 16px;\n"
+        "        display: inline-flex;\n"
+        "        gap: 6px;\n"
+        "        padding: 6px;\n"
+        "        border-radius: 999px;\n"
+        "        background: var(--toggle-bg);\n"
+        "        color: var(--toggle-text);\n"
+        "        border: 1px solid var(--toggle-border);\n"
+        "        font-size: 12px;\n"
+        "        z-index: 10;\n"
+        "        backdrop-filter: blur(6px);\n"
+        "      }\n"
+        "      .theme-toggle button {\n"
+        "        border: none;\n"
+        "        background: transparent;\n"
+        "        color: inherit;\n"
+        "        padding: 4px 10px;\n"
+        "        border-radius: 999px;\n"
+        "        font: inherit;\n"
+        "        cursor: pointer;\n"
+        "      }\n"
+        "      .theme-toggle button.active {\n"
+        "        background: var(--toggle-active-bg);\n"
+        "        color: var(--toggle-active-text);\n"
+        "      }\n"
+        "    </style>\n"
+        "  </head>\n"
+        "  <body>\n"
+        '    <div class="theme-toggle" role="group" aria-label="Theme toggle">\n'
+        '      <button type="button" data-theme="dark">Dark</button>\n'
+        '      <button type="button" data-theme="light">Light</button>\n'
+        "    </div>\n"
+        "    <main>\n"
+        f"      <h1>{safe_title}</h1>\n"
+        f"      {tree_html}\n"
+        "    </main>\n"
+        "    <script>\n"
+        f"      const themeDefault = '{ui_mode}';\n"
+        "      const themeStorageKey = 'gvim-theme';\n"
+        "      const root = document.documentElement;\n"
+        "      const toggleButtons = document.querySelectorAll('.theme-toggle button');\n"
+        "      const getStoredTheme = () => {\n"
+        "        try { return localStorage.getItem(themeStorageKey); } catch (err) { return null; }\n"
+        "      };\n"
+        "      const setStoredTheme = (value) => {\n"
+        "        try { localStorage.setItem(themeStorageKey, value); } catch (err) {}\n"
+        "      };\n"
+        "      const applyTheme = (value) => {\n"
+        "        root.dataset.theme = value;\n"
+        "        toggleButtons.forEach((btn) => {\n"
+        "          btn.classList.toggle('active', btn.dataset.theme === value);\n"
+        "        });\n"
+        "      };\n"
+        "      const preferredTheme = getStoredTheme() || themeDefault;\n"
+        "      applyTheme(preferredTheme);\n"
+        "      toggleButtons.forEach((btn) => {\n"
+        "        btn.addEventListener('click', () => {\n"
+        "          const value = btn.dataset.theme;\n"
+        "          applyTheme(value);\n"
+        "          setStoredTheme(value);\n"
+        "        });\n"
+        "      });\n"
+        "    </script>\n"
+        "  </body>\n"
+        "</html>\n"
+    )
+
+
+def _build_index_tree(paths: list[Path]) -> dict[str, object]:
+    root: dict[str, object] = {"__files__": []}
+    for rel_path in paths:
+        parts = rel_path.parts
+        if not parts:
+            continue
+        node = root
+        for part in parts[:-1]:
+            if part not in node:
+                node[part] = {"__files__": []}
+            node = node[part]
+        node.setdefault("__files__", []).append((parts[-1], rel_path))
+    return root
+
+
+def _render_index_tree(node: dict[str, object], is_root: bool = False) -> str:
+    files = list(node.get("__files__", []))
+    files.sort(key=lambda item: item[0].lower())
+    dirs = [key for key in node.keys() if key != "__files__"]
+    dirs.sort(key=str.lower)
+    lines = [
+        '<ul class="index-tree">' if is_root else "<ul>",
+    ]
+    for dirname in dirs:
+        lines.append('<li class="dir">')
+        lines.append(f'<div class="dir-name">{_escape_html(dirname)}</div>')
+        child = node.get(dirname)
+        if isinstance(child, dict):
+            lines.append(_render_index_tree(child))
+        lines.append("</li>")
+    for filename, rel_path in files:
+        url = _encode_rel_path(rel_path)
+        lines.append(
+            f'<li class="file"><a href="{url}">{_escape_html(filename)}</a></li>'
+        )
+    lines.append("</ul>")
+    return "\n".join(lines)
+
+
+def _encode_rel_path(path: Path) -> str:
+    encoded = "/".join(quote(part) for part in path.parts)
+    return f"./{encoded}"

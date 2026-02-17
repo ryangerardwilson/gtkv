@@ -23,7 +23,7 @@ from loading_screen import LoadingScreen
 import document_io
 import editor
 import py_runner
-from export_html import export_document
+from export_html import export_document, export_vault_index
 from design_constants import colors_for, font
 from _version import __version__
 from app_state import AppState
@@ -891,9 +891,13 @@ def _run_export_all() -> int:
         return 1
     python_path = _get_venv_python()
     ui_mode = config.get_ui_mode() or "dark"
+    html_paths = []
     for doc_path in doc_paths:
         document = document_io.load(doc_path)
-        export_document(document, doc_path.with_suffix(".html"), python_path, ui_mode)
+        output_path = doc_path.with_suffix(".html")
+        export_document(document, output_path, python_path, ui_mode)
+        html_paths.append(output_path)
+    export_vault_index(root, html_paths, ui_mode)
     return 0
 
 
