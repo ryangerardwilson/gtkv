@@ -26,7 +26,7 @@ from loading_screen import LoadingScreen
 import document_io
 import editor
 import py_runner
-from export_html import export_document, export_vault_index
+from export_html import build_index_tree_html, export_document, export_vault_index
 from design_constants import colors_for, font
 from _version import __version__
 from app_state import AppState
@@ -941,12 +941,33 @@ def _run_export_all() -> int:
         return 1
     python_path = _get_venv_python()
     ui_mode = config.get_ui_mode() or "dark"
-    index_items = []
+    export_items: list[tuple[Path, BlockDocument, str | None]] = []
+    index_items: list[tuple[Path, str | None]] = []
     for doc_path in doc_paths:
         document = document_io.load(doc_path)
         output_path = doc_path.with_suffix(".html")
-        export_document(document, output_path, python_path, ui_mode)
-        index_items.append((output_path, get_document_title(document)))
+        title = get_document_title(document)
+        export_items.append((output_path, document, title))
+        index_items.append((output_path, title))
+
+    rel_index_items = [
+        (path.relative_to(root), title or path.stem or path.name)
+        for path, title in index_items
+    ]
+
+    for output_path, document, _title in export_items:
+        rel_output = output_path.relative_to(root)
+        depth = max(len(rel_output.parts) - 1, 0)
+        base_prefix = "../" * depth
+        index_tree_html = build_index_tree_html(rel_index_items, base_prefix)
+        export_document(
+            document,
+            output_path,
+            python_path,
+            ui_mode,
+            index_tree_html=index_tree_html,
+        )
+
     export_vault_index(root, index_items, ui_mode)
     return 0
 

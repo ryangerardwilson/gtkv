@@ -32,9 +32,21 @@ def export_document(
     output_path: Path,
     python_path: str | None,
     ui_mode: str = "dark",
+    index_tree_html: str | None = None,
 ) -> None:
-    html = _build_html(document, python_path, ui_mode)
+    html = _build_html(document, python_path, ui_mode, index_tree_html)
     output_path.write_text(html, encoding="utf-8")
+
+
+def _normalize_index_items(
+    root: Path,
+    items: list[tuple[Path, str | None]],
+) -> list[tuple[Path, str]]:
+    rel_items: list[tuple[Path, str]] = []
+    for path, doc_title in items:
+        rel_path = path.relative_to(root)
+        rel_items.append((rel_path, doc_title or rel_path.stem or rel_path.name))
+    return rel_items
 
 
 def export_vault_index(
@@ -43,16 +55,25 @@ def export_vault_index(
     ui_mode: str = "dark",
     title: str | None = None,
 ) -> None:
-    rel_items: list[tuple[Path, str]] = []
-    for path, doc_title in items:
-        rel_path = path.relative_to(root)
-        rel_items.append((rel_path, doc_title or rel_path.stem or rel_path.name))
+    rel_items = _normalize_index_items(root, items)
     index_title = title or "Index"
     html = _build_index_html(rel_items, ui_mode, index_title)
     (root / "index.html").write_text(html, encoding="utf-8")
 
 
-def _build_html(document: BlockDocument, python_path: str | None, ui_mode: str) -> str:
+def build_index_tree_html(
+    rel_items: list[tuple[Path, str]],
+    base_prefix: str = "",
+) -> str:
+    return _build_index_tree_html(rel_items, base_prefix)
+
+
+def _build_html(
+    document: BlockDocument,
+    python_path: str | None,
+    ui_mode: str,
+    index_tree_html: str | None,
+) -> str:
     dark = colors_for("dark")
     light = colors_for("light")
     blocks_html = []
@@ -95,6 +116,24 @@ def _build_html(document: BlockDocument, python_path: str | None, ui_mode: str) 
         f"      mapBlocksLight.push([{_js_string(light_id)}, {_js_string(_rewrite_map_source(source, light.map_marker))}]);\n"
         for _dark_id, light_id, source in map_sources
     )
+    nav_menu_html = ""
+    if index_tree_html:
+        nav_menu_html = (
+            '    <div class="nav-menu" aria-label="Index menu">\n'
+            '      <button type="button" class="nav-button" aria-label="Open index menu">\n'
+            "        <span></span>\n"
+            "        <span></span>\n"
+            "        <span></span>\n"
+            "      </button>\n"
+            "    </div>\n"
+            '    <div class="index-modal" role="dialog" aria-modal="true" aria-hidden="true">\n'
+            '      <div class="index-backdrop"></div>\n'
+            '      <div class="index-panel">\n'
+            '        <div class="index-header">Index</div>\n'
+            f'        <div class="index-body" tabindex="0">{index_tree_html}</div>\n'
+            "      </div>\n"
+            "    </div>\n"
+        )
     return (
         "<!doctype html>\n"
         f'<html data-theme="{ui_mode}">\n'
@@ -148,7 +187,7 @@ def _build_html(document: BlockDocument, python_path: str | None, ui_mode: str) 
         "      main {\n"
         "        max-width: 960px;\n"
         "        margin: 32px auto;\n"
-        "        padding: 0 24px 80px;\n"
+        "        padding: 24px 24px 80px;\n"
         "      }\n"
         "      .block {\n"
         "        padding: 16px 20px;\n"
@@ -189,6 +228,85 @@ def _build_html(document: BlockDocument, python_path: str | None, ui_mode: str) 
         "        z-index: 10;\n"
         "        backdrop-filter: blur(6px);\n"
         "      }\n"
+        "      .nav-menu {\n"
+        "        position: fixed;\n"
+        "        top: 16px;\n"
+        "        left: 16px;\n"
+        "        z-index: 10;\n"
+        "      }\n"
+        "      .nav-button {\n"
+        "        width: 36px;\n"
+        "        height: 32px;\n"
+        "        border-radius: 10px;\n"
+        "        border: 1px solid var(--toggle-border);\n"
+        "        background: var(--toggle-bg);\n"
+        "        color: var(--toggle-text);\n"
+        "        display: inline-flex;\n"
+        "        align-items: center;\n"
+        "        justify-content: center;\n"
+        "        cursor: pointer;\n"
+        "        gap: 4px;\n"
+        "      }\n"
+        "      .nav-button span {\n"
+        "        display: block;\n"
+        "        width: 14px;\n"
+        "        height: 2px;\n"
+        "        background: currentColor;\n"
+        "        border-radius: 999px;\n"
+        "      }\n"
+        "      .index-modal {\n"
+        "        position: fixed;\n"
+        "        inset: 0;\n"
+        "        display: none;\n"
+        "        align-items: center;\n"
+        "        justify-content: center;\n"
+        "        z-index: 20;\n"
+        "      }\n"
+        "      .index-modal.open {\n"
+        "        display: flex;\n"
+        "      }\n"
+        "      .index-backdrop {\n"
+        "        position: absolute;\n"
+        "        inset: 0;\n"
+        "        background: rgba(0, 0, 0, 0.55);\n"
+        "      }\n"
+        "      .index-panel {\n"
+        "        position: relative;\n"
+        "        width: min(720px, 92vw);\n"
+        "        max-height: 80vh;\n"
+        "        background: var(--body-background);\n"
+        "        border: 1px solid var(--toggle-border);\n"
+        "        border-radius: 16px;\n"
+        "        box-shadow: 0 22px 60px rgba(0, 0, 0, 0.28);\n"
+        "        overflow: hidden;\n"
+        "        display: flex;\n"
+        "        flex-direction: column;\n"
+        "      }\n"
+        "      .index-header {\n"
+        "        padding: 14px 18px;\n"
+        "        font-size: 14px;\n"
+        "        font-weight: 600;\n"
+        "        color: var(--title-color);\n"
+        "        border-bottom: 1px solid var(--toggle-border);\n"
+        "      }\n"
+        "      .index-body {\n"
+        "        padding: 14px 18px 18px;\n"
+        "        overflow: auto;\n"
+        "        outline: none;\n"
+        "      }\n"
+        "      .index-body .index-tree {\n"
+        f"        font-size: {font.export_body};\n"
+        "        margin: 0;\n"
+        "      }\n"
+        "      .index-body ul { list-style: none; margin: 0; padding-left: 16px; }\n"
+        "      .index-body li { margin: 4px 0; }\n"
+        "      .index-body .dir-name { color: var(--muted-color, var(--body-text)); font-weight: 600; }\n"
+        "      .index-body a { color: var(--body-text); text-decoration: none; }\n"
+        "      .index-body a:hover { color: var(--link-color, var(--body-text)); text-decoration: underline; }\n"
+        "      .index-body a.nav-selected {\n"
+        "        text-decoration: underline;\n"
+        "        color: var(--link-color, var(--body-text));\n"
+        "      }\n"
         "      .theme-toggle button {\n"
         "        border: none;\n"
         "        background: transparent;\n"
@@ -210,6 +328,7 @@ def _build_html(document: BlockDocument, python_path: str | None, ui_mode: str) 
         "    </style>\n"
         "  </head>\n"
         "  <body>\n"
+        f"{nav_menu_html}"
         '    <div class="theme-toggle" role="group" aria-label="Theme toggle">\n'
         '      <button type="button" data-theme="dark">Dark</button>\n'
         '      <button type="button" data-theme="light">Light</button>\n'
@@ -280,6 +399,84 @@ def _build_html(document: BlockDocument, python_path: str | None, ui_mode: str) 
         "          applyTheme(value);\n"
         "          setStoredTheme(value);\n"
         "        });\n"
+        "      });\n"
+        "      const navButton = document.querySelector('.nav-button');\n"
+        "      const indexModal = document.querySelector('.index-modal');\n"
+        "      const indexBody = document.querySelector('.index-body');\n"
+        "      const indexBackdrop = document.querySelector('.index-backdrop');\n"
+        "      let indexLinks = [];\n"
+        "      let indexSelected = -1;\n"
+        "      const refreshIndexLinks = () => {\n"
+        "        indexLinks = indexBody ? Array.from(indexBody.querySelectorAll('a')) : [];\n"
+        "      };\n"
+        "      const setSelected = (next) => {\n"
+        "        if (!indexLinks.length) return;\n"
+        "        if (indexSelected >= 0 && indexSelected < indexLinks.length) {\n"
+        "          indexLinks[indexSelected].classList.remove('nav-selected');\n"
+        "        }\n"
+        "        indexSelected = Math.max(0, Math.min(next, indexLinks.length - 1));\n"
+        "        const link = indexLinks[indexSelected];\n"
+        "        link.classList.add('nav-selected');\n"
+        "        link.scrollIntoView({ block: 'nearest' });\n"
+        "      };\n"
+        "      const openIndex = () => {\n"
+        "        if (!indexModal) return;\n"
+        "        indexModal.classList.add('open');\n"
+        "        indexModal.setAttribute('aria-hidden', 'false');\n"
+        "        refreshIndexLinks();\n"
+        "        setSelected(0);\n"
+        "        if (indexBody) indexBody.focus();\n"
+        "      };\n"
+        "      const closeIndex = () => {\n"
+        "        if (!indexModal) return;\n"
+        "        indexModal.classList.remove('open');\n"
+        "        indexModal.setAttribute('aria-hidden', 'true');\n"
+        "      };\n"
+        "      if (navButton) {\n"
+        "        navButton.addEventListener('click', openIndex);\n"
+        "      }\n"
+        "      if (indexBackdrop) {\n"
+        "        indexBackdrop.addEventListener('click', closeIndex);\n"
+        "      }\n"
+        "      document.addEventListener('keydown', (event) => {\n"
+        "        const modalOpen = indexModal && indexModal.classList.contains('open');\n"
+        "        if (event.key === 'i' && !modalOpen) {\n"
+        "          event.preventDefault();\n"
+        "          openIndex();\n"
+        "          return;\n"
+        "        }\n"
+        "        if (modalOpen) {\n"
+        "          if (event.key === 'Escape') {\n"
+        "            event.preventDefault();\n"
+        "            closeIndex();\n"
+        "            return;\n"
+        "          }\n"
+        "          if (event.key === 'Enter') {\n"
+        "            event.preventDefault();\n"
+        "            if (indexSelected >= 0 && indexSelected < indexLinks.length) {\n"
+        "              indexLinks[indexSelected].click();\n"
+        "            }\n"
+        "            return;\n"
+        "          }\n"
+        "          if (event.key === 'j') {\n"
+        "            event.preventDefault();\n"
+        "            if (!indexLinks.length) {\n"
+        "              if (indexBody) indexBody.scrollBy({ top: 80, left: 0, behavior: 'auto' });\n"
+        "              return;\n"
+        "            }\n"
+        "            setSelected(indexSelected + 1);\n"
+        "            return;\n"
+        "          }\n"
+        "          if (event.key === 'k') {\n"
+        "            event.preventDefault();\n"
+        "            if (!indexLinks.length) {\n"
+        "              if (indexBody) indexBody.scrollBy({ top: -80, left: 0, behavior: 'auto' });\n"
+        "              return;\n"
+        "            }\n"
+        "            setSelected(indexSelected - 1);\n"
+        "            return;\n"
+        "          }\n"
+        "        }\n"
         "      });\n"
         "      let scrollDelta = 0;\n"
         "      let scrollScheduled = false;\n"
@@ -480,8 +677,7 @@ def _slugify_heading(text: str) -> str:
 def _build_index_html(paths: list[tuple[Path, str]], ui_mode: str, title: str) -> str:
     dark = colors_for("dark")
     light = colors_for("light")
-    tree = _build_index_tree(paths)
-    tree_html = _render_index_tree(tree, is_root=True)
+    tree_html = _build_index_tree_html(paths, "")
     safe_title = _escape_html(title)
     return (
         "<!doctype html>\n"
@@ -527,7 +723,7 @@ def _build_index_html(paths: list[tuple[Path, str]], ui_mode: str, title: str) -
         "      main {\n"
         "        max-width: 960px;\n"
         "        margin: 32px auto;\n"
-        "        padding: 0 24px 80px;\n"
+        "        padding: 24px 24px 80px;\n"
         "      }\n"
         f"      h1 {{ font-size: {font.export_title}; color: var(--title-color); margin: 0 0 16px; }}\n"
         f"      .index-tree {{ font-size: {font.export_body}; }}\n"
@@ -625,7 +821,11 @@ def _build_index_tree(paths: list[tuple[Path, str]]) -> dict[str, Any]:
     return root
 
 
-def _render_index_tree(node: dict[str, Any], is_root: bool = False) -> str:
+def _render_index_tree(
+    node: dict[str, Any],
+    base_prefix: str,
+    is_root: bool = False,
+) -> str:
     files = cast(list[tuple[str, Path, str]], node.get("__files__", []))
     files.sort(key=lambda item: item[0].lower())
     dirs = [key for key in node.keys() if key != "__files__"]
@@ -638,10 +838,10 @@ def _render_index_tree(node: dict[str, Any], is_root: bool = False) -> str:
         lines.append(f'<div class="dir-name">{_escape_html(dirname)}/</div>')
         child = node.get(dirname)
         if isinstance(child, dict):
-            lines.append(_render_index_tree(child))
+            lines.append(_render_index_tree(child, base_prefix))
         lines.append("</li>")
     for filename, rel_path, title in files:
-        url = _encode_rel_path(rel_path)
+        url = _encode_rel_path(rel_path, base_prefix)
         lines.append(
             f'<li class="file"><a href="{url}">{_escape_html(title)}</a></li>'
         )
@@ -649,6 +849,12 @@ def _render_index_tree(node: dict[str, Any], is_root: bool = False) -> str:
     return "\n".join(lines)
 
 
-def _encode_rel_path(path: Path) -> str:
+def _encode_rel_path(path: Path, base_prefix: str) -> str:
     encoded = "/".join(quote(part) for part in path.parts)
-    return f"./{encoded}"
+    prefix = base_prefix or "./"
+    return f"{prefix}{encoded}"
+
+
+def _build_index_tree_html(paths: list[tuple[Path, str]], base_prefix: str) -> str:
+    tree = _build_index_tree(paths)
+    return _render_index_tree(tree, base_prefix, is_root=True)
