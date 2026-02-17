@@ -62,10 +62,7 @@ DEFAULT_KEYMAP: dict[str, Any] = {
             "last_block": "G",
             "open_editor": "<CR>",
             "quit_no_save": "q",
-            "save": "<C-s>",
             "export_html": "<C-e>",
-            "save_and_exit": "<C-t>",
-            "exit_no_save": "<C-x>",
             "help_toggle": "?",
             "paste_block": "p",
             "delete_block": "dd",
@@ -133,7 +130,7 @@ _HELP_SECTIONS = [
             {"type": "single", "mode": "document", "a": "yank_block", "label": "yank selected block"},
             {"type": "single", "mode": "document", "a": "paste_block", "label": "paste clipboard block"},
             {"type": "single", "mode": "document", "a": "open_editor", "label": "edit selected block"},
-            {"type": "single", "mode": "document", "a": "quit_no_save", "label": "quit without saving"},
+            {"type": "single", "mode": "document", "a": "quit_no_save", "label": "quit"},
         ],
     ),
     (
@@ -170,10 +167,7 @@ _HELP_SECTIONS = [
     (
         "Other",
         [
-            {"type": "single", "mode": "document", "a": "save", "label": "save"},
             {"type": "single", "mode": "document", "a": "export_html", "label": "export html"},
-            {"type": "single", "mode": "document", "a": "save_and_exit", "label": "save and exit"},
-            {"type": "single", "mode": "document", "a": "exit_no_save", "label": "exit without saving"},
             {"type": "single", "mode": "document", "a": "help_toggle", "label": "toggle this help"},
         ],
     ),

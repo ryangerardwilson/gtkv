@@ -114,6 +114,12 @@ class Orchestrator:
 
         cwd_vault_root = _find_config_vault_for_path(Path.cwd())
         if document_path is not None and document_path.exists():
+            if self._demo:
+                print(
+                    "Quickstart only applies to new files; remove -q to open an existing document.",
+                    file=sys.stderr,
+                )
+                return 1
             vault_root = _find_config_vault_for_path(document_path)
             if vault_root is None:
                 print(
@@ -124,14 +130,16 @@ class Orchestrator:
             self._active_vault_root = vault_root
             self._state.document = document_io.load(document_path)
         else:
-            if self._demo:
-                self._state.document = sample_document()
-            else:
-                self._state.document = BlockDocument([])
             if document_path is not None:
+                if self._demo:
+                    self._state.document = sample_document()
+                else:
+                    self._state.document = BlockDocument([TextBlock("Untitled", kind="title")])
                 self._state.document.set_path(document_path)
                 self._active_vault_root = cwd_vault_root
-            if document_path is None and not self._demo:
+                document_io.save(document_path, self._state.document)
+            else:
+                self._state.document = BlockDocument([TextBlock("Untitled", kind="title")])
                 vaults = [path for path in config.get_vaults() if path.exists()]
                 if vaults:
                     self._active_vault_root = cwd_vault_root
@@ -173,10 +181,14 @@ class Orchestrator:
 
         document = self._state.document
         if document is None:
-            document = BlockDocument([])
+            document = BlockDocument([TextBlock("Untitled", kind="title")])
             self._state.document = document
 
-        view: BlockEditorView = BlockEditorView(self._ui_mode or "dark", self._keymap)
+        view: BlockEditorView = BlockEditorView(
+            self._ui_mode or "dark",
+            self._keymap,
+            demo=self._demo,
+        )
         view.set_document(document)
         self._state.view = view
         logging.info("View created; blocks=%s", len(document.blocks))
@@ -236,9 +248,15 @@ class Orchestrator:
         if action == "move_up":
             return actions.move_selection(self._state, -1)
         if action == "move_block_down":
-            return actions.move_block(self._state, 1)
+            if actions.move_block(self._state, 1):
+                self._persist_document()
+                return True
+            return False
         if action == "move_block_up":
-            return actions.move_block(self._state, -1)
+            if actions.move_block(self._state, -1):
+                self._persist_document()
+                return True
+            return False
         if action == "first_block":
             return actions.select_first(self._state)
         if action == "last_block":
@@ -248,29 +266,11 @@ class Orchestrator:
         if action == "quit_no_save":
             self._quit()
             return True
-        if action == "save":
-            saved, error = self._save_document()
-            if saved:
-                self._show_status("Saved", "success")
-            else:
-                self._show_status(error or "Save failed", "error")
-            return True
         if action == "export_html":
             if self._export_current_html():
                 self._show_status("Exported HTML", "success")
             else:
                 self._show_status("Export failed", "error")
-            return True
-        if action == "save_and_exit":
-            saved, error = self._save_document()
-            if saved:
-                self._show_status("Saved", "success")
-                self._quit()
-                return True
-            self._show_status(error or "Save failed", "error")
-            return True
-        if action == "exit_no_save":
-            self._quit()
             return True
         if action == "help_toggle":
             if self._state.view is not None:
@@ -282,6 +282,7 @@ class Orchestrator:
                 return True
             if actions.paste_after_selected(self._state, self._state.clipboard_block):
                 self._show_status("Pasted block", "success")
+                self._persist_document()
             else:
                 self._show_status("Paste failed", "error")
             return True
@@ -292,6 +293,7 @@ class Orchestrator:
                 return True
             self._state.clipboard_block = deleted
             self._show_status("Deleted block", "success")
+            self._persist_document()
             return True
         if action == "yank_block":
             yanked = actions.yank_selected_block(self._state)
@@ -309,25 +311,55 @@ class Orchestrator:
         if action == "open_toc":
             return self._open_toc_drill()
         if action == "insert_text":
-            return actions.insert_text_block(self._state, kind="body")
+            if actions.insert_text_block(self._state, kind="body"):
+                self._persist_document()
+                return True
+            return False
         if action == "insert_title":
-            return actions.insert_text_block(self._state, kind="title")
+            if actions.insert_text_block(self._state, kind="title"):
+                self._persist_document()
+                return True
+            return False
         if action == "insert_h1":
-            return actions.insert_text_block(self._state, kind="h1")
+            if actions.insert_text_block(self._state, kind="h1"):
+                self._persist_document()
+                return True
+            return False
         if action == "insert_h2":
-            return actions.insert_text_block(self._state, kind="h2")
+            if actions.insert_text_block(self._state, kind="h2"):
+                self._persist_document()
+                return True
+            return False
         if action == "insert_h3":
-            return actions.insert_text_block(self._state, kind="h3")
+            if actions.insert_text_block(self._state, kind="h3"):
+                self._persist_document()
+                return True
+            return False
         if action == "insert_toc":
-            return actions.insert_toc_block(self._state)
+            if actions.insert_toc_block(self._state):
+                self._persist_document()
+                return True
+            return False
         if action == "insert_three":
-            return self._insert_three_block()
+            if self._insert_three_block():
+                self._persist_document()
+                return True
+            return False
         if action == "insert_pyimage":
-            return self._insert_python_image_block()
+            if self._insert_python_image_block():
+                self._persist_document()
+                return True
+            return False
         if action == "insert_latex":
-            return self._insert_latex_block()
+            if self._insert_latex_block():
+                self._persist_document()
+                return True
+            return False
         if action == "insert_map":
-            return self._insert_map_block()
+            if self._insert_map_block():
+                self._persist_document()
+                return True
+            return False
         return False
 
     def _open_toc_drill(self) -> bool:
@@ -341,6 +373,7 @@ class Orchestrator:
             insert_at = self._state.view.get_selected_index()
             self._state.document.insert_block_after(insert_at, TextBlock("", kind="toc"))
             self._state.view.set_document(self._state.document)
+            self._persist_document()
         self._state.view.open_toc_drill(self._state.document)
         return True
 
@@ -399,6 +432,12 @@ class Orchestrator:
     def _close_vault_mode(self) -> None:
         if self._state.view is None:
             return
+        if self._state.document is None or self._state.document.path is None:
+            self._show_status("Open a document first", "error")
+            vaults = [path for path in config.get_vaults() if path.exists()]
+            if vaults:
+                self._state.view.open_vault_mode(vaults)
+            return
         self._mode = "document"
         self._state.view.close_vault_mode()
 
@@ -442,6 +481,7 @@ class Orchestrator:
 
     def _handle_editor_update(self, index: int, kind: str, updated_text: str) -> None:
         actions.update_block_from_editor(self._state, index, kind, updated_text)
+        self._persist_document()
         if kind == "pyimage":
             if self._state.view is not None:
                 self._state.view.set_pyimage_pending(index)
@@ -496,6 +536,12 @@ class Orchestrator:
             document_io.save(document.path, document)
             return True, None
         return False, "No document path set; launch with a .gvim filename"
+
+    def _persist_document(self) -> bool:
+        saved, error = self._save_document()
+        if not saved and error:
+            self._show_status(error, "error")
+        return saved
 
     def _export_current_html(self) -> bool:
         document = self._state.document
@@ -827,12 +873,14 @@ def parse_args(
         nargs="?",
         const="__default__",
         help=(
-            "Export .gvim to HTML (optional output path; without input, "
-            "export all .gvim recursively from cwd)"
+            "Export all .gvim recursively from the current vault"
         ),
     )
     parser.add_argument(
-        "-q", action="store_true", dest="demo", help="Quickstart content"
+        "-q",
+        action="store_true",
+        dest="demo",
+        help="Quickstart content for new files",
     )
     parser.add_argument("file", nargs="?", help=".gvim document to open")
     if hasattr(parser, "parse_known_intermixed_args"):

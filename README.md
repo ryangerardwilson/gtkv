@@ -97,16 +97,13 @@ System dependencies are required for PyGObject and GTK4. The installer uses
 - `Enter` — open the selected text or code block in Vim.
 - `Enter` on a TOC block — open the outline drill.
 - Exit Vim — refreshes the block content in GTK.
-- `Ctrl+S` — save the current document.
 - `Ctrl+E` — export HTML alongside the document.
-- `Ctrl+T` — save and exit.
-- `q` / `Ctrl+X` — exit without saving.
+- `q` — quit.
 - `Escape` — return to document mode from vault mode.
 - `-v` — print installed version.
 - `-u` — upgrade to the latest release.
-- `-e [output.html] doc.gvim` — export to HTML (defaults to same basename).
 - `-e` — export all `.gvim` recursively from the current vault.
-- `-q` — quickstart a new document with demo content.
+- `-q` — quickstart a new document with demo content (new files only).
 - `-h` — show CLI help.
 
 ## Configuration
@@ -114,6 +111,8 @@ System dependencies are required for PyGObject and GTK4. The installer uses
 `gvim` stores settings in `~/.config/gvim/config.json` (or
 `$XDG_CONFIG_HOME/gvim/config.json`). You can edit this file to customize the
 Vim-style keymap and leader.
+
+Edits are persisted automatically whenever you change a block.
 
 Example `config.json` with keymap overrides:
 
@@ -133,10 +132,7 @@ Example `config.json` with keymap overrides:
         "last_block": "G",
         "open_editor": "<CR>",
         "quit_no_save": "q",
-        "save": "<C-s>",
         "export_html": "<C-e>",
-        "save_and_exit": "<C-t>",
-        "exit_no_save": "<C-x>",
         "help_toggle": "?",
         "paste_block": "p",
         "delete_block": "dd",
@@ -387,12 +383,6 @@ format: svg
 ```
 
 ### HTML export
-
-Export a document to a self-contained HTML page (toggleable light/dark):
-
-```bash
-gvim -e [output.html] doc.gvim
-```
 
 Export all `.gvim` documents under the current vault:
 

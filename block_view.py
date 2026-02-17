@@ -34,6 +34,7 @@ from block_model import (
     PythonImageBlock,
     TextBlock,
     ThreeBlock,
+    sample_document,
 )
 from design_constants import colors_for
 from latex_template import render_latex_html
@@ -108,12 +109,18 @@ class _TocBlockView(Gtk.Frame):
 
 
 class BlockEditorView(Gtk.Box):
-    def __init__(self, ui_mode: str = "dark", keymap_config: keymap.Keymap | None = None) -> None:
+    def __init__(
+        self,
+        ui_mode: str = "dark",
+        keymap_config: keymap.Keymap | None = None,
+        demo: bool = False,
+    ) -> None:
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         self.set_hexpand(True)
         self.set_vexpand(True)
         self._ui_mode = ui_mode
         self._keymap = keymap_config
+        self._demo = demo
 
         self._scroller = Gtk.ScrolledWindow()
         self._scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
@@ -930,7 +937,12 @@ class BlockEditorView(Gtk.Box):
         if target.suffix == ".gvim":
             try:
                 target.parent.mkdir(parents=True, exist_ok=True)
-                document_io.save(target, BlockDocument([]))
+                if self._demo:
+                    document_io.save(target, sample_document())
+                else:
+                    document_io.save(
+                        target, BlockDocument([TextBlock("Untitled", kind="title")])
+                    )
             except OSError:
                 self.show_status("Failed to create file", "error")
                 return False
