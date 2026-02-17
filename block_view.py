@@ -139,6 +139,7 @@ class BlockEditorView(Gtk.Box):
         self._column.set_margin_start(24)
         self._column.set_margin_end(24)
         self._column.set_valign(Gtk.Align.START)
+        self._column.set_hexpand(True)
 
         self._help_visible = False
         self._help_scroller: Gtk.ScrolledWindow | None = None
