@@ -63,6 +63,7 @@ DEFAULT_KEYMAP: dict[str, Any] = {
             "open_editor": "<CR>",
             "quit_no_save": "q",
             "export_html": "<C-e>",
+            "deploy_sync": "<C-d>",
             "help_toggle": "?",
             "paste_block": "p",
             "delete_block": "dd",
@@ -168,6 +169,7 @@ _HELP_SECTIONS = [
         "Other",
         [
             {"type": "single", "mode": "document", "a": "export_html", "label": "export html"},
+            {"type": "single", "mode": "document", "a": "deploy_sync", "label": "deploy (git sync)"},
             {"type": "single", "mode": "document", "a": "help_toggle", "label": "toggle this help"},
         ],
     ),

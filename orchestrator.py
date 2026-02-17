@@ -85,6 +85,7 @@ class Orchestrator:
         self._startup_loading: LoadingScreen | None = None
         self._startup_pyimage_pending: set[int] = set()
         self._demo = False
+        self._deploy_running = False
 
     def run(self, argv: Sequence[str] | None = None) -> int:
         logging.info("Orchestrator run")
@@ -272,6 +273,9 @@ class Orchestrator:
                 self._show_status("Exported HTML", "success")
             else:
                 self._show_status("Export failed", "error")
+            return True
+        if action == "deploy_sync":
+            self._deploy_sync()
             return True
         if action == "help_toggle":
             if self._state.view is not None:
@@ -554,6 +558,46 @@ class Orchestrator:
             document, output_path, self._python_path, self._ui_mode or "dark"
         )
         return True
+
+    def _deploy_sync(self) -> None:
+        if self._deploy_running:
+            self._show_status("Deploy already running", "error")
+            return
+        root = self._resolve_vault_root_for_sync()
+        if root is None:
+            self._show_status("Deploy requires a configured vault", "error")
+            return
+        if shutil.which("git") is None:
+            self._show_status("Git not found", "error")
+            return
+        if not _git_is_repo(root):
+            self._show_status("Git not initialized in vault", "error")
+            return
+        if not _git_has_remote(root):
+            self._show_status("No git remote configured", "error")
+            return
+        self._deploy_running = True
+
+        def _worker() -> None:
+            result = _run_git_sync(root, allow_prompt=False)
+            def _done() -> bool:
+                self._deploy_running = False
+                if result == 0:
+                    self._show_status("Deployed", "success")
+                else:
+                    self._show_status("Deploy failed", "error")
+                return False
+            GLib.idle_add(_done)
+
+        threading.Thread(target=_worker, daemon=True).start()
+
+    def _resolve_vault_root_for_sync(self) -> Path | None:
+        if self._active_vault_root is not None:
+            return self._active_vault_root
+        document = self._state.document
+        if document is None or document.path is None:
+            return None
+        return _find_config_vault_for_path(document.path)
 
     def _render_python_image(self, index: int) -> None:
         document = self._state.document
@@ -984,7 +1028,7 @@ def _find_config_vault_for_path(path: Path) -> Path | None:
     return None
 
 
-def _run_git_sync(root: Path) -> int:
+def _run_git_sync(root: Path, allow_prompt: bool = True) -> int:
     if shutil.which("git") is None:
         print("Git not found; skipping sync.", file=sys.stderr)
         return 1
@@ -995,6 +1039,9 @@ def _run_git_sync(root: Path) -> int:
         return 1
     _git_commit_sync(root)
     if not _git_has_remote(root):
+        if not allow_prompt:
+            print("Missing git remote; skipping push.", file=sys.stderr)
+            return 1
         remote = input("Git remote URL: ").strip()
         if not remote:
             print("Missing remote URL; skipping push.", file=sys.stderr)

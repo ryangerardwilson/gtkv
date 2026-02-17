@@ -98,6 +98,7 @@ System dependencies are required for PyGObject and GTK4. The installer uses
 - `Enter` on a TOC block — open the outline drill.
 - Exit Vim — refreshes the block content in GTK.
 - `Ctrl+E` — export HTML alongside the document.
+- `Ctrl+D` — deploy (git add/commit/push) from the vault.
 - `q` — quit.
 - `Escape` — return to document mode from vault mode.
 - `-v` — print installed version.
