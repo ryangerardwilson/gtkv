@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 from pathlib import Path
 
@@ -18,11 +19,23 @@ def get_config_path() -> Path:
 
 def load_config() -> dict:
     path = get_config_path()
+    logging.info("Config path: %s", path)
     if not path.exists():
+        logging.info("Config missing")
         return {}
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+        raw = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        logging.error("Config read failed: %s", exc)
+        return {}
+    raw = raw.lstrip("\ufeff")
+    try:
+        config = json.loads(raw)
+        if isinstance(config, dict):
+            logging.info("Config keys: %s", sorted(config.keys()))
+        return config
+    except json.JSONDecodeError as exc:
+        logging.error("Config JSON parse failed: %s", exc)
         return {}
 
 
@@ -36,7 +49,11 @@ def get_ui_mode() -> str | None:
     config = load_config()
     value = config.get("mode")
     if isinstance(value, str) and value.strip():
-        return value.strip().lower()
+        mode = value.strip().lower()
+        logging.info("Config mode: %s", mode)
+        return mode
+    if value is not None:
+        logging.info("Config mode invalid: %r", value)
     return None
 
 

@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import threading
 import os
 import subprocess
 import sys
+import traceback
 from pathlib import Path
 from typing import Sequence
 
@@ -14,7 +16,8 @@ import gi
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Gdk", "4.0")
-from gi.repository import Gdk, GLib, Gtk  # type: ignore[import-not-found, attr-defined]
+gi.require_version("Gio", "2.0")
+from gi.repository import Gdk, Gio, GLib, Gtk  # type: ignore[import-not-found, attr-defined]
 
 import actions
 import config
@@ -45,12 +48,20 @@ APP_ID = "com.gvim.block"
 
 class BlockApp(Gtk.Application):
     def __init__(self, orchestrator: "Orchestrator") -> None:
-        super().__init__(application_id=APP_ID)
+        super().__init__(
+            application_id=APP_ID,
+            flags=Gio.ApplicationFlags.NON_UNIQUE,
+        )
         self._orchestrator = orchestrator
 
     def do_activate(self) -> None:
+        logging.info("GTK activate")
         window = Gtk.ApplicationWindow(application=self)
-        self._orchestrator.configure_window(window)
+        try:
+            self._orchestrator.configure_window(window)
+        except Exception:
+            logging.error("Configure window failed:\n%s", traceback.format_exc())
+            raise
 
 
 class Orchestrator:
@@ -69,6 +80,7 @@ class Orchestrator:
         self._demo = False
 
     def run(self, argv: Sequence[str] | None = None) -> int:
+        logging.info("Orchestrator run")
         args = list(sys.argv[1:] if argv is None else argv)
         options, gtk_args, parser = parse_args(args)
         if options.version:
@@ -87,10 +99,12 @@ class Orchestrator:
         self._python_path = _get_venv_python()
 
         self._ui_mode = config.get_ui_mode()
+        logging.info("UI mode from config: %s", self._ui_mode)
         if not self._ui_mode:
             self._ui_mode = _prompt_ui_mode_cli()
             if self._ui_mode:
                 config.set_ui_mode(self._ui_mode)
+        logging.info("UI mode resolved: %s", self._ui_mode)
 
         cwd_vault_root = _find_config_vault_for_path(Path.cwd())
         if document_path is not None and document_path.exists():
@@ -118,10 +132,32 @@ class Orchestrator:
                     self._open_vault_on_start = True
 
         app = BlockApp(self)
-        _load_css(Path(__file__).with_name("style.css"), self._ui_mode or "dark")
-        return app.run(gtk_args)
+        logging.info("GTK app initialized; ui_mode=%s", self._ui_mode)
+        logging.info("GTK app run; gtk_args=%s", gtk_args)
+        argv = [sys.argv[0], *gtk_args]
+        rc = app.run(argv)
+        registered = app.get_is_registered()
+        remote = app.get_is_remote() if registered else None
+        logging.info("GTK app exit: %s (registered=%s remote=%s)", rc, registered, remote)
+        return rc
 
     def configure_window(self, window: Gtk.ApplicationWindow) -> None:
+        logging.info("Configure window")
+        settings = Gtk.Settings.get_default()
+        if settings is not None:
+            settings.set_property(
+                "gtk-application-prefer-dark-theme",
+                (self._ui_mode or "dark") == "dark",
+            )
+            logging.info(
+                "GTK prefer-dark-theme: %s",
+                (self._ui_mode or "dark") == "dark",
+            )
+        _load_css(
+            Path(__file__).with_name("style.css"),
+            self._ui_mode or "dark",
+            window.get_display(),
+        )
         window.set_title("GVIM")
         window.set_default_size(960, 720)
 
@@ -137,6 +173,7 @@ class Orchestrator:
         view: BlockEditorView = BlockEditorView(self._ui_mode or "dark", self._keymap)
         view.set_document(document)
         self._state.view = view
+        logging.info("View created; blocks=%s", len(document.blocks))
         self._prime_startup_loading(document)
         self._render_python_images_on_start()
         loading.attach_content(view)
@@ -152,6 +189,7 @@ class Orchestrator:
 
         window.set_child(view)
         window.present()
+        logging.info("Window presented")
 
     def on_key_pressed(self, _controller, keyval, _keycode, state) -> bool:
         if self._state.document is None or self._state.view is None:
@@ -637,10 +675,11 @@ class Orchestrator:
         return False
 
 
-def _load_css(css_path: Path, ui_mode: str) -> None:
+def _load_css(css_path: Path, ui_mode: str, display: Gdk.Display | None = None) -> None:
     if not css_path.exists():
         return
 
+    logging.info("Loading CSS: %s (mode=%s)", css_path, ui_mode)
     palette = colors_for(ui_mode)
     variables = ":root {\n"
     variables += f"  --block-text-color: {palette.block_text};\n"
@@ -721,21 +760,28 @@ def _load_css(css_path: Path, ui_mode: str) -> None:
 
     provider = Gtk.CssProvider()
     provider.load_from_data(variables.encode("utf-8"))
-    display = Gdk.Display.get_default()
+    if display is None:
+        display = Gdk.Display.get_default()
     if display is not None:
         Gtk.StyleContext.add_provider_for_display(
             display, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         )
+        logging.info("CSS variables applied")
+    else:
+        logging.info("CSS variables skipped; display not ready")
 
     provider = Gtk.CssProvider()
     provider.load_from_path(str(css_path))
-    display = Gdk.Display.get_default()
     if display is None:
+        display = Gdk.Display.get_default()
+    if display is None:
+        logging.info("CSS file skipped; display not ready")
         return
 
     Gtk.StyleContext.add_provider_for_display(
         display, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
     )
+    logging.info("CSS file applied")
 
 
 def _get_venv_python() -> str | None:
