@@ -577,6 +577,7 @@ class Orchestrator:
             self._show_status("No git remote configured", "error")
             return
         self._deploy_running = True
+        self._show_status("Deploying...", "success")
 
         def _worker() -> None:
             result = _run_git_sync(root, allow_prompt=False)
