@@ -35,6 +35,7 @@ from block_model import (
     MapBlock,
     PythonImageBlock,
     TextBlock,
+    get_document_title,
     sample_document,
 )
 from block_view import BlockEditorView
@@ -243,10 +244,11 @@ class Orchestrator:
             self._quit()
             return True
         if action == "save":
-            if self._save_document():
+            saved, error = self._save_document()
+            if saved:
                 self._show_status("Saved", "success")
             else:
-                self._show_status("Save failed", "error")
+                self._show_status(error or "Save failed", "error")
             return True
         if action == "export_html":
             if self._export_current_html():
@@ -255,11 +257,12 @@ class Orchestrator:
                 self._show_status("Export failed", "error")
             return True
         if action == "save_and_exit":
-            if self._save_document():
+            saved, error = self._save_document()
+            if saved:
                 self._show_status("Saved", "success")
                 self._quit()
                 return True
-            self._show_status("Save failed", "error")
+            self._show_status(error or "Save failed", "error")
             return True
         if action == "exit_no_save":
             self._quit()
@@ -478,15 +481,16 @@ class Orchestrator:
             return False
         return self._open_selected_block_editor()
 
-    def _save_document(self) -> bool:
+    def _save_document(self) -> tuple[bool, str | None]:
         document = self._state.document
         if document is None:
-            return False
+            return False, "Missing document"
+        if not get_document_title(document):
+            return False, "Title required"
         if document.path is not None:
             document_io.save(document.path, document)
-            return True
-        print("No document path set; launch with a .gvim filename", file=sys.stderr)
-        return False
+            return True, None
+        return False, "No document path set; launch with a .gvim filename"
 
     def _export_current_html(self) -> bool:
         document = self._state.document

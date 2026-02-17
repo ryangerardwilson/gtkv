@@ -335,3 +335,13 @@ def sample_document() -> BlockDocument:
     )
 
     return BlockDocument(blocks)
+
+
+def get_document_title(document: BlockDocument) -> str | None:
+    for block in document.blocks:
+        if isinstance(block, TextBlock) and block.kind == "title":
+            text = block.text.strip()
+            if not text:
+                return None
+            return text.splitlines()[0].strip() or None
+    return None
