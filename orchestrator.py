@@ -1093,7 +1093,7 @@ def _git_is_repo(root: Path) -> bool:
 
 def _git_init(root: Path) -> bool:
     result = subprocess.run(
-        ["git", "-C", str(root), "init"],
+        ["git", "-C", str(root), "init", "-b", "main"],
         check=False,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
