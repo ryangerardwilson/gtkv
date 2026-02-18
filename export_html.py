@@ -245,6 +245,7 @@ def _build_html(
         "      .toc-line.depth-4 { padding-left: 48px; }\n"
         "      .toc-line.depth-5 { padding-left: 64px; }\n"
         "      .toc-line.depth-6 { padding-left: 80px; }\n"
+        "      .doc-modal .toc-line { line-height: 1.4; margin: 4px 0; }\n"
         "      .toc-line.depth-4 { padding-left: 48px; }\n"
         "      .toc-line.depth-5 { padding-left: 64px; }\n"
         "      .toc-line.depth-6 { padding-left: 80px; }\n"
