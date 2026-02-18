@@ -684,7 +684,11 @@ class BlockEditorView(Gtk.Box):
         self._vault_panel.set_visible(True)
         self._vault_locked = locked
         self._vault_vaults = list(vaults)
-        if len(self._vault_vaults) == 1:
+        if self._vault_locked and self._vault_vaults:
+            self._vault_screen = "browser"
+            self._vault_root = self._vault_vaults[0]
+            self._vault_path = self._vault_root
+        elif len(self._vault_vaults) == 1:
             self._vault_screen = "browser"
             self._vault_root = self._vault_vaults[0]
             self._vault_path = self._vault_root
