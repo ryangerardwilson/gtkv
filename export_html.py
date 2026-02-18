@@ -159,6 +159,12 @@ def _build_html(
         f"        --h1-color: {dark.export_h1};\n"
         f"        --h2-color: {dark.export_h2};\n"
         f"        --h3-color: {dark.export_h3};\n"
+        f"        --h4-color: {dark.export_h4};\n"
+        f"        --h5-color: {dark.export_h5};\n"
+        f"        --h6-color: {dark.export_h6};\n"
+        f"        --h4-color: {dark.export_h4};\n"
+        f"        --h5-color: {dark.export_h5};\n"
+        f"        --h6-color: {dark.export_h6};\n"
         f"        --body-color: {dark.export_body};\n"
         f"        --toc-color: {dark.export_toc};\n"
         f"        --latex-color: {dark.export_latex};\n"
@@ -175,6 +181,12 @@ def _build_html(
         f"        --h1-color: {light.export_h1};\n"
         f"        --h2-color: {light.export_h2};\n"
         f"        --h3-color: {light.export_h3};\n"
+        f"        --h4-color: {light.export_h4};\n"
+        f"        --h5-color: {light.export_h5};\n"
+        f"        --h6-color: {light.export_h6};\n"
+        f"        --h4-color: {light.export_h4};\n"
+        f"        --h5-color: {light.export_h5};\n"
+        f"        --h6-color: {light.export_h6};\n"
         f"        --body-color: {light.export_body};\n"
         f"        --toc-color: {light.export_toc};\n"
         f"        --latex-color: {light.export_latex};\n"
@@ -203,6 +215,12 @@ def _build_html(
         f"      .block-h1 {{ font-size: {font.export_h1}; font-weight: 600; color: var(--h1-color); }}\n"
         f"      .block-h2 {{ font-size: {font.export_h2}; font-weight: 600; color: var(--h2-color); }}\n"
         f"      .block-h3 {{ font-size: {font.export_h3}; font-weight: 600; color: var(--h3-color); }}\n"
+        f"      .block-h4 {{ font-size: {font.export_h4}; font-weight: 600; color: var(--h4-color); }}\n"
+        f"      .block-h5 {{ font-size: {font.export_h5}; font-weight: 600; color: var(--h5-color); }}\n"
+        f"      .block-h6 {{ font-size: {font.export_h6}; font-weight: 600; color: var(--h6-color); }}\n"
+        f"      .block-h4 {{ font-size: {font.export_h4}; font-weight: 600; color: var(--h4-color); }}\n"
+        f"      .block-h5 {{ font-size: {font.export_h5}; font-weight: 600; color: var(--h5-color); }}\n"
+        f"      .block-h6 {{ font-size: {font.export_h6}; font-weight: 600; color: var(--h6-color); }}\n"
         f"      .block-body {{ font-size: {font.export_body}; line-height: 1.6; color: var(--body-color); white-space: pre-wrap; }}\n"
         f"      .block-toc {{ font-size: {font.export_toc}; color: var(--toc-color); white-space: pre-wrap; }}\n"
         "      .block-toc a { color: inherit; text-decoration: none; }\n"
@@ -213,6 +231,12 @@ def _build_html(
         "      .toc-line { display: block; line-height: 0.2; margin: 0; }\n"
         "      .toc-line.depth-2 { padding-left: 16px; }\n"
         "      .toc-line.depth-3 { padding-left: 32px; }\n"
+        "      .toc-line.depth-4 { padding-left: 48px; }\n"
+        "      .toc-line.depth-5 { padding-left: 64px; }\n"
+        "      .toc-line.depth-6 { padding-left: 80px; }\n"
+        "      .toc-line.depth-4 { padding-left: 48px; }\n"
+        "      .toc-line.depth-5 { padding-left: 64px; }\n"
+        "      .toc-line.depth-6 { padding-left: 80px; }\n"
         "      .block-pyimage { text-align: center; }\n"
         "      .block-pyimage img { max-width: 100%; height: auto; display: inline-block; }\n"
         '      :root[data-theme="dark"] .block-pyimage img.light { display: none; }\n'
@@ -548,7 +572,7 @@ def _render_text_block(
         return f'<section class="block {kind_class}">{toc_text}</section>'
     text_source = block.text
     text = _escape_html(text_source)
-    if block.kind in {"h1", "h2", "h3"}:
+    if block.kind in {"h1", "h2", "h3", "h4", "h5", "h6"}:
         anchor = heading_ids.get(index)
         if anchor:
             return f'<section id="{anchor}" class="block {kind_class}">{text}</section>'
@@ -658,7 +682,7 @@ def _build_toc(document: BlockDocument) -> tuple[str, dict[int, str]]:
     heading_ids: dict[int, str] = {}
     seen: dict[str, int] = {}
     for index, block in enumerate(document.blocks):
-        if isinstance(block, TextBlock) and block.kind in {"h1", "h2", "h3"}:
+        if isinstance(block, TextBlock) and block.kind in {"h1", "h2", "h3", "h4", "h5", "h6"}:
             text = block.text.strip().splitlines()[0] if block.text.strip() else ""
             if not text:
                 continue
@@ -687,8 +711,14 @@ def _build_toc(document: BlockDocument) -> tuple[str, dict[int, str]]:
             lines.append(f'<div class="toc-line depth-1">{anchor_link}</div>')
         elif kind == "h2":
             lines.append(f'<div class="toc-line depth-2">{anchor_link}</div>')
-        else:
+        elif kind == "h3":
             lines.append(f'<div class="toc-line depth-3">{anchor_link}</div>')
+        elif kind == "h4":
+            lines.append(f'<div class="toc-line depth-4">{anchor_link}</div>')
+        elif kind == "h5":
+            lines.append(f'<div class="toc-line depth-5">{anchor_link}</div>')
+        else:
+            lines.append(f'<div class="toc-line depth-6">{anchor_link}</div>')
     return "\n".join(lines), heading_ids
 
 

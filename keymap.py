@@ -76,6 +76,9 @@ DEFAULT_KEYMAP: dict[str, Any] = {
             "insert_h1": "<leader>bh1",
             "insert_h2": "<leader>bh2",
             "insert_h3": "<leader>bh3",
+            "insert_h4": "<leader>bh4",
+            "insert_h5": "<leader>bh5",
+            "insert_h6": "<leader>bh6",
             "insert_toc": "<leader>bi",
             "insert_three": "<leader>bjs",
             "insert_pyimage": "<leader>bpy",
@@ -155,7 +158,7 @@ _HELP_SECTIONS = [
             {
                 "type": "multi",
                 "mode": "document",
-                "actions": ["insert_h1", "insert_h2", "insert_h3"],
+                "actions": ["insert_h1", "insert_h2", "insert_h3", "insert_h4", "insert_h5", "insert_h6"],
                 "label": "headings",
             },
             {"type": "single", "mode": "document", "a": "insert_toc", "label": "index"},

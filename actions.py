@@ -33,6 +33,12 @@ def insert_text_block(state: AppState, kind: str = "body") -> bool:
         placeholder = "Heading2"
     elif kind == "h3":
         placeholder = "Heading3"
+    elif kind == "h4":
+        placeholder = "Heading4"
+    elif kind == "h5":
+        placeholder = "Heading5"
+    elif kind == "h6":
+        placeholder = "Heading6"
     state.document.insert_block_after(insert_at, TextBlock(placeholder, kind=kind))
     state.view.set_document(state.document)
     return True

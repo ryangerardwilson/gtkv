@@ -340,6 +340,36 @@ class Orchestrator:
                 self._persist_document()
                 return True
             return False
+        if action == "insert_h4":
+            if actions.insert_text_block(self._state, kind="h4"):
+                self._persist_document()
+                return True
+            return False
+        if action == "insert_h5":
+            if actions.insert_text_block(self._state, kind="h5"):
+                self._persist_document()
+                return True
+            return False
+        if action == "insert_h6":
+            if actions.insert_text_block(self._state, kind="h6"):
+                self._persist_document()
+                return True
+            return False
+        if action == "insert_h4":
+            if actions.insert_text_block(self._state, kind="h4"):
+                self._persist_document()
+                return True
+            return False
+        if action == "insert_h5":
+            if actions.insert_text_block(self._state, kind="h5"):
+                self._persist_document()
+                return True
+            return False
+        if action == "insert_h6":
+            if actions.insert_text_block(self._state, kind="h6"):
+                self._persist_document()
+                return True
+            return False
         if action == "insert_toc":
             if actions.insert_toc_block(self._state):
                 self._persist_document()
@@ -503,7 +533,7 @@ class Orchestrator:
             if index < 0 or index >= len(document.blocks):
                 return
             block = document.blocks[index]
-            if isinstance(block, TextBlock) and block.kind in {"title", "h1", "h2", "h3"}:
+            if isinstance(block, TextBlock) and block.kind in {"title", "h1", "h2", "h3", "h4", "h5", "h6"}:
                 view.refresh_toc(document)
             return
         view.reload_media_at(index)
@@ -797,6 +827,12 @@ def _load_css(css_path: Path, ui_mode: str, display: Gdk.Display | None = None) 
     variables += f"  --block-h2-size: {font.block_h2};\n"
     variables += f"  --block-h3-color: {palette.block_h3};\n"
     variables += f"  --block-h3-size: {font.block_h3};\n"
+    variables += f"  --block-h4-color: {palette.block_h4};\n"
+    variables += f"  --block-h4-size: {font.block_h4};\n"
+    variables += f"  --block-h5-color: {palette.block_h5};\n"
+    variables += f"  --block-h5-size: {font.block_h5};\n"
+    variables += f"  --block-h6-color: {palette.block_h6};\n"
+    variables += f"  --block-h6-size: {font.block_h6};\n"
     variables += f"  --block-toc-color: {palette.block_toc};\n"
     variables += f"  --block-toc-size: {font.block_toc};\n"
     variables += f"  --app-background: {palette.app_background};\n"

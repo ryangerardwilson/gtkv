@@ -79,6 +79,7 @@ System dependencies are required for PyGObject and GTK4. The installer uses
 - `,bn` — insert a normal text block.
 - `,bht` — insert a title block.
 - `,bh1` / `,bh2` / `,bh3` — insert heading blocks.
+- `,bh4` / `,bh5` / `,bh6` — insert smaller heading blocks.
 - `,bi` — insert an index block.
 - `,bjs` — insert a 3D block and edit its Three.js module JS in Vim.
 - `,bpy` — insert a Python render block (SVG output).
@@ -153,6 +154,9 @@ Example `config.json` with keymap overrides:
         "insert_h1": "<leader>bh1",
         "insert_h2": "<leader>bh2",
         "insert_h3": "<leader>bh3",
+        "insert_h4": "<leader>bh4",
+        "insert_h5": "<leader>bh5",
+        "insert_h6": "<leader>bh6",
         "insert_toc": "<leader>bi",
         "insert_three": "<leader>bjs",
         "insert_pyimage": "<leader>bpy",

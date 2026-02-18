@@ -1250,9 +1250,9 @@ class BlockEditorView(Gtk.Box):
 
     def _build_outline_entries(self, document: BlockDocument) -> list[OutlineEntry]:
         entries: list[OutlineEntry] = []
-        depth_map = {"h1": 0, "h2": 1, "h3": 2}
+        depth_map = {"h1": 0, "h2": 1, "h3": 2, "h4": 3, "h5": 4, "h6": 5}
         for index, block in enumerate(document.blocks):
-            if isinstance(block, TextBlock) and block.kind in {"h1", "h2", "h3"}:
+            if isinstance(block, TextBlock) and block.kind in {"h1", "h2", "h3", "h4", "h5", "h6"}:
                 text = block.text.strip().splitlines()[0] if block.text.strip() else ""
                 if not text:
                     continue
@@ -1544,7 +1544,7 @@ class _TextBlockView(Gtk.Frame):
         self._text_view = Gtk.TextView()
         self._text_view.set_monospace(True)
         self._text_view.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
-        if kind in {"title", "h1", "h2", "h3"}:
+        if kind in {"title", "h1", "h2", "h3", "h4", "h5", "h6"}:
             self._text_view.set_top_margin(10)
             self._text_view.set_bottom_margin(8)
         else:
@@ -1552,7 +1552,7 @@ class _TextBlockView(Gtk.Frame):
             self._text_view.set_bottom_margin(12)
         self._text_view.set_left_margin(12)
         self._text_view.set_right_margin(12)
-        if kind in {"title", "h1", "h2", "h3"}:
+        if kind in {"title", "h1", "h2", "h3", "h4", "h5", "h6"}:
             self._text_view.set_pixels_above_lines(1)
             self._text_view.set_pixels_below_lines(1)
         else:
@@ -1884,7 +1884,7 @@ def _three_module_uri() -> str:
 def _build_toc(blocks: Sequence[TextBlock]) -> str:
     headings = []
     for block in blocks:
-        if isinstance(block, TextBlock) and block.kind in {"h1", "h2", "h3"}:
+        if isinstance(block, TextBlock) and block.kind in {"h1", "h2", "h3", "h4", "h5", "h6"}:
             text = block.text.strip().splitlines()[0] if block.text.strip() else ""
             if text:
                 headings.append((block.kind, text))
@@ -1899,6 +1899,12 @@ def _build_toc(blocks: Sequence[TextBlock]) -> str:
             indent = "  "
         elif kind == "h3":
             indent = "    "
+        elif kind == "h4":
+            indent = "      "
+        elif kind == "h5":
+            indent = "        "
+        elif kind == "h6":
+            indent = "          "
         lines.append(f"{indent}- {text}")
     return "\n".join(lines)
 
