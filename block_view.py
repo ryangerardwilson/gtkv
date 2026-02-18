@@ -65,6 +65,7 @@ class VaultAction:
     opened_path: Path | None = None
     close: bool = False
     toggle_theme: bool = False
+    locked: bool = False
 
 
 class _TocBlockView(Gtk.Frame):
@@ -180,6 +181,7 @@ class BlockEditorView(Gtk.Box):
         self._vault_clipboard_mode: str | None = None
         self._vault_clipboard_path: Path | None = None
         self._vault_clipboard_name: str | None = None
+        self._vault_locked = False
 
         self._status_timer_id: int | None = None
         self._scroll_idle_id: int | None = None
@@ -677,9 +679,10 @@ class BlockEditorView(Gtk.Box):
     def vault_active(self) -> bool:
         return self._vault_visible
 
-    def open_vault_mode(self, vaults: Sequence[Path]) -> None:
+    def open_vault_mode(self, vaults: Sequence[Path], locked: bool = False) -> None:
         self._vault_visible = True
         self._vault_panel.set_visible(True)
+        self._vault_locked = locked
         self._vault_vaults = list(vaults)
         if len(self._vault_vaults) == 1:
             self._vault_screen = "browser"
@@ -749,6 +752,8 @@ class BlockEditorView(Gtk.Box):
                 self._vault_path = self._vault_path.parent
                 self._vault_selected = 0
                 self._render_vault_entries()
+            if self._vault_path == self._vault_root and self._vault_locked:
+                return VaultAction(True, locked=True)
             return VaultAction(True)
         if action == "enter_or_open":
             entry = self._get_selected_vault_entry()
@@ -758,6 +763,7 @@ class BlockEditorView(Gtk.Box):
                 self._vault_screen = "browser"
                 self._vault_root = entry.path
                 self._vault_path = entry.path
+                self._vault_locked = True
                 self._vault_selected = 0
                 self._render_vault_entries()
                 return VaultAction(True)

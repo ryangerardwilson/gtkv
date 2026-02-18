@@ -86,6 +86,7 @@ class Orchestrator:
         self._startup_pyimage_pending: set[int] = set()
         self._demo = False
         self._deploy_running = False
+        self._vault_locked = False
 
     def run(self, argv: Sequence[str] | None = None) -> int:
         logging.info("Orchestrator run")
@@ -130,6 +131,7 @@ class Orchestrator:
                 )
                 return 1
             self._active_vault_root = vault_root
+            self._vault_locked = True
             self._state.document = document_io.load(document_path)
         else:
             if document_path is not None:
@@ -141,6 +143,8 @@ class Orchestrator:
                     )
                 self._state.document.set_path(document_path)
                 self._active_vault_root = cwd_vault_root
+                if self._active_vault_root is not None:
+                    self._vault_locked = True
                 document_io.save(document_path, self._state.document)
             else:
                 self._state.document = BlockDocument(
@@ -228,6 +232,8 @@ class Orchestrator:
                 self._close_vault_mode()
             elif action.close:
                 self._close_vault_mode()
+            if action.locked:
+                self._show_status("Vault locked for session", "error")
             if action.toggle_theme:
                 self._toggle_ui_mode()
             return action.handled
@@ -468,8 +474,12 @@ class Orchestrator:
         if not vaults:
             self._show_status("No vaults registered", "error")
             return True
+        if self._vault_locked and self._active_vault_root is not None:
+            vaults = [self._active_vault_root]
         self._mode = "vault"
-        self._state.view.open_vault_mode(vaults)
+        self._state.view.open_vault_mode(vaults, locked=self._vault_locked)
+        if self._active_vault_root is not None:
+            self._vault_locked = True
         return True
 
     def _close_vault_mode(self) -> None:
