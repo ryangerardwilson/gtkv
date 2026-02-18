@@ -233,7 +233,7 @@ class Orchestrator:
             elif action.close:
                 self._close_vault_mode()
             if action.locked:
-                self._show_status("Vault locked for session", "error")
+                self._show_status("Vault locked for session", "success")
             if action.toggle_theme:
                 self._toggle_ui_mode()
             return action.handled
