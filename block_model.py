@@ -345,3 +345,23 @@ def get_document_title(document: BlockDocument) -> str | None:
                 return None
             return text.splitlines()[0].strip() or None
     return None
+
+
+def build_heading_numbering(
+    blocks: Sequence[Block],
+) -> dict[int, str]:
+    counters = [0, 0, 0, 0, 0, 0]
+    numbering: dict[int, str] = {}
+    levels = {"h1": 1, "h2": 2, "h3": 3, "h4": 4, "h5": 5, "h6": 6}
+    for index, block in enumerate(blocks):
+        if not isinstance(block, TextBlock):
+            continue
+        level = levels.get(block.kind)
+        if level is None:
+            continue
+        counters[level - 1] += 1
+        for reset_index in range(level, len(counters)):
+            counters[reset_index] = 0
+        parts = [str(value) for value in counters[:level] if value > 0]
+        numbering[index] = ".".join(parts) + "."
+    return numbering

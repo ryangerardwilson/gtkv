@@ -34,6 +34,7 @@ from block_model import (
     PythonImageBlock,
     TextBlock,
     ThreeBlock,
+    build_heading_numbering,
     sample_document,
 )
 from design_constants import colors_for
@@ -217,11 +218,12 @@ class BlockEditorView(Gtk.Box):
 
         self._block_widgets = []
 
+        numbering = build_heading_numbering(document.blocks)
         toc_text = _build_toc(
             [block for block in document.blocks if isinstance(block, TextBlock)]
         )
-        for block in document.blocks:
-            widget = self._build_widget(block, toc_text, self._ui_mode)
+        for index, block in enumerate(document.blocks):
+            widget = self._build_widget(block, toc_text, self._ui_mode, numbering, index)
             if widget is None:
                 continue
             self._block_widgets.append(widget)
@@ -247,10 +249,14 @@ class BlockEditorView(Gtk.Box):
         return True
 
     def insert_widget_after(self, index: int, block, document: BlockDocument) -> None:
+        numbering = build_heading_numbering(document.blocks)
         toc_text = _build_toc(
             [item for item in document.blocks if isinstance(item, TextBlock)]
         )
-        widget = self._build_widget(block, toc_text, self._ui_mode)
+        insert_index = min(index + 1, len(document.blocks) - 1)
+        widget = self._build_widget(
+            block, toc_text, self._ui_mode, numbering, insert_index
+        )
         if widget is None:
             return
         insert_at = min(index + 1, len(self._block_widgets))
@@ -259,6 +265,7 @@ class BlockEditorView(Gtk.Box):
             widget, self._block_widgets[insert_at - 1] if insert_at > 0 else None
         )
         self.refresh_toc(document)
+        self.refresh_heading_numbering(document)
 
     def remove_widget_at(self, index: int, document: BlockDocument) -> None:
         if index < 0 or index >= len(self._block_widgets):
@@ -266,6 +273,19 @@ class BlockEditorView(Gtk.Box):
         widget = self._block_widgets.pop(index)
         self._column.remove(widget)
         self.refresh_toc(document)
+        self.refresh_heading_numbering(document)
+
+    def refresh_heading_numbering(self, document: BlockDocument) -> None:
+        numbering = build_heading_numbering(document.blocks)
+        for index, (block, widget) in enumerate(zip(document.blocks, self._block_widgets)):
+            if not isinstance(block, TextBlock):
+                continue
+            if block.kind not in {"h1", "h2", "h3", "h4", "h5", "h6"}:
+                continue
+            if not isinstance(widget, _TextBlockView):
+                continue
+            prefix = numbering.get(index, "")
+            widget.set_text(_format_heading_label(prefix, block.text))
 
     def refresh_toc(self, document: BlockDocument) -> None:
         toc_text = _build_toc(
@@ -390,7 +410,13 @@ class BlockEditorView(Gtk.Box):
             return False
         widget = self._block_widgets[index]
         if isinstance(widget, _TextBlockView):
-            widget.set_text(text)
+            block = self._document.blocks[index] if self._document else None
+            if isinstance(block, TextBlock) and block.kind in {"h1", "h2", "h3", "h4", "h5", "h6"}:
+                numbering = build_heading_numbering(self._document.blocks) if self._document else {}
+                prefix = numbering.get(index, "")
+                widget.set_text(_format_heading_label(prefix, text))
+            else:
+                widget.set_text(text)
             return True
         return False
 
@@ -1251,6 +1277,7 @@ class BlockEditorView(Gtk.Box):
     def _build_outline_entries(self, document: BlockDocument) -> list[OutlineEntry]:
         entries: list[OutlineEntry] = []
         depth_map = {"h1": 0, "h2": 1, "h3": 2, "h4": 3, "h5": 4, "h6": 5}
+        numbering = build_heading_numbering(document.blocks)
         for index, block in enumerate(document.blocks):
             if isinstance(block, TextBlock) and block.kind in {
                 "h1",
@@ -1261,14 +1288,14 @@ class BlockEditorView(Gtk.Box):
                 "h6",
             }:
                 text = block.text.strip().splitlines()[0] if block.text.strip() else ""
-                if not text:
-                    continue
+                prefix = numbering.get(index, "")
+                label = _format_heading_label(prefix, text)
                 entries.append(
                     OutlineEntry(
                         block_index=index,
                         kind=block.kind,
                         depth=depth_map[block.kind],
-                        text=text,
+                        text=label,
                         has_children=False,
                     )
                 )
@@ -1525,10 +1552,19 @@ class BlockEditorView(Gtk.Box):
         return overlay
 
     @staticmethod
-    def _build_widget(block, toc_text: str, ui_mode: str) -> Gtk.Widget | None:
+    def _build_widget(
+        block,
+        toc_text: str,
+        ui_mode: str,
+        numbering: dict[int, str],
+        index: int,
+    ) -> Gtk.Widget | None:
         if isinstance(block, TextBlock):
             if block.kind == "toc":
                 return _TocBlockView(toc_text)
+            if block.kind in {"h1", "h2", "h3", "h4", "h5", "h6"}:
+                prefix = numbering.get(index, "")
+                return _TextBlockView(_format_heading_label(prefix, block.text), block.kind)
             return _TextBlockView(block.text, block.kind)
         if isinstance(block, ThreeBlock):
             return _ThreeBlockView(block.source, ui_mode)
@@ -1890,7 +1926,8 @@ def _three_module_uri() -> str:
 
 def _build_toc(blocks: Sequence[TextBlock]) -> str:
     headings = []
-    for block in blocks:
+    numbering = build_heading_numbering(blocks)
+    for index, block in enumerate(blocks):
         if isinstance(block, TextBlock) and block.kind in {
             "h1",
             "h2",
@@ -1900,8 +1937,8 @@ def _build_toc(blocks: Sequence[TextBlock]) -> str:
             "h6",
         }:
             text = block.text.strip().splitlines()[0] if block.text.strip() else ""
-            if text:
-                headings.append((block.kind, text))
+            prefix = numbering.get(index, "")
+            headings.append((block.kind, _format_heading_label(prefix, text)))
 
     if not headings:
         return "(No headings yet)"
@@ -1921,6 +1958,16 @@ def _build_toc(blocks: Sequence[TextBlock]) -> str:
             indent = "          "
         lines.append(f"{indent}- {text}")
     return "\n".join(lines)
+
+
+def _format_heading_label(prefix: str, text: str) -> str:
+    prefix = prefix.strip()
+    text = text.strip()
+    if not prefix:
+        return text
+    if not text:
+        return prefix
+    return f"{prefix} {text}"
 
 
 def _apply_block_padding(widget: Gtk.Widget, padding: int = 12) -> None:

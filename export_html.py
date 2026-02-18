@@ -17,6 +17,7 @@ from block_model import (
     PythonImageBlock,
     TextBlock,
     ThreeBlock,
+    build_heading_numbering,
 )
 
 
@@ -85,10 +86,13 @@ def _build_html(
     blocks_html = []
     latex_sources = []
     map_sources = []
-    toc_text, heading_ids = _build_toc(document)
+    numbering = build_heading_numbering(document.blocks)
+    toc_text, heading_ids = _build_toc(document, numbering)
     for index, block in enumerate(document.blocks):
         if isinstance(block, TextBlock):
-            blocks_html.append(_render_text_block(block, toc_text, heading_ids, index))
+            blocks_html.append(
+                _render_text_block(block, toc_text, heading_ids, numbering, index)
+            )
         elif isinstance(block, ThreeBlock):
             blocks_html.append(_render_three_block(block.source, index))
         elif isinstance(block, PythonImageBlock):
@@ -565,7 +569,11 @@ def _build_html(
 
 
 def _render_text_block(
-    block: TextBlock, toc_text: str, heading_ids: dict[int, str], index: int
+    block: TextBlock,
+    toc_text: str,
+    heading_ids: dict[int, str],
+    numbering: dict[int, str],
+    index: int,
 ) -> str:
     kind_class = f"block-{block.kind}"
     if block.kind == "toc":
@@ -573,6 +581,9 @@ def _render_text_block(
     text_source = block.text
     text = _escape_html(text_source)
     if block.kind in {"h1", "h2", "h3", "h4", "h5", "h6"}:
+        prefix = numbering.get(index, "")
+        if prefix:
+            text = _escape_html(_format_heading_label(prefix, text_source))
         anchor = heading_ids.get(index)
         if anchor:
             return f'<section id="{anchor}" class="block {kind_class}">{text}</section>'
@@ -677,7 +688,10 @@ def _rewrite_map_source(source: str, marker_color: str) -> str:
     return updated
 
 
-def _build_toc(document: BlockDocument) -> tuple[str, dict[int, str]]:
+def _build_toc(
+    document: BlockDocument,
+    numbering: dict[int, str],
+) -> tuple[str, dict[int, str]]:
     headings: list[tuple[int, str, str]] = []
     heading_ids: dict[int, str] = {}
     seen: dict[str, int] = {}
@@ -691,15 +705,15 @@ def _build_toc(document: BlockDocument) -> tuple[str, dict[int, str]]:
             "h6",
         }:
             text = block.text.strip().splitlines()[0] if block.text.strip() else ""
-            if not text:
-                continue
             anchor = _slugify_heading(text)
             count = seen.get(anchor, 0) + 1
             seen[anchor] = count
             if count > 1:
                 anchor = f"{anchor}-{count}"
             heading_ids[index] = anchor
-            headings.append((index, block.kind, text))
+            prefix = numbering.get(index, "")
+            label = _format_heading_label(prefix, text)
+            headings.append((index, block.kind, label))
 
     if not headings:
         return (
@@ -741,6 +755,16 @@ def _slugify_heading(text: str) -> str:
             prev_dash = True
     slug_text = "".join(slug).strip("-")
     return slug_text or "section"
+
+
+def _format_heading_label(prefix: str, text: str) -> str:
+    prefix = prefix.strip()
+    text = text.strip()
+    if not prefix:
+        return text
+    if not text:
+        return prefix
+    return f"{prefix} {text}"
 
 
 def _build_index_html(paths: list[tuple[Path, str]], ui_mode: str, title: str) -> str:

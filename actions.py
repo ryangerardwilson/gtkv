@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+from typing import Sequence
 from pathlib import Path
 
 import config
@@ -25,6 +26,13 @@ def insert_text_block(state: AppState, kind: str = "body") -> bool:
         return False
     insert_at = state.view.get_selected_index()
     placeholder = "New text block"
+    if kind in {"h1", "h2", "h3", "h4", "h5", "h6"}:
+        prior_blocks = [
+            block
+            for block in state.document.blocks[: insert_at + 1]
+            if isinstance(block, TextBlock)
+        ]
+        kind = _resolve_heading_kind(prior_blocks, kind)
     if kind == "title":
         placeholder = "Title"
     elif kind == "h1":
@@ -386,3 +394,15 @@ def _prepend_guidance(kind: str, content: str) -> str:
     if kind == "pyimage" and stripped.startswith(_PY_SAMPLE.strip()):
         return guidance
     return f"{guidance}{content}"
+def _resolve_heading_kind(blocks: Sequence[TextBlock], kind: str) -> str:
+    order = {"h1": 1, "h2": 2, "h3": 3, "h4": 4, "h5": 5, "h6": 6}
+    target = order.get(kind)
+    if target is None or target == 1:
+        return kind
+    highest = 0
+    for block in blocks:
+        if isinstance(block, TextBlock) and block.kind in order:
+            highest = max(highest, order[block.kind])
+    if highest >= target - 1:
+        return kind
+    return {value: key for key, value in order.items()}.get(highest + 1, "h1")
