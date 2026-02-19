@@ -1351,8 +1351,8 @@ def _run_export_all_for_root(root: Path) -> int:
             index_href=index_href,
         )
 
-    _cleanup_orphan_html(root, [path for path, _title in index_items])
     export_vault_index(root, index_items, ui_mode)
+    _cleanup_orphan_html(root, [path for path, _title in index_items])
     return 0
 
 

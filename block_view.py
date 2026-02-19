@@ -1189,7 +1189,7 @@ class BlockEditorView(Gtk.Box):
         files: list[VaultEntry] = []
         for child in children:
             name = child.name
-            if name.startswith("."):
+            if name in {".git", ".github"}:
                 continue
             if cut_path is not None and child == cut_path:
                 continue
