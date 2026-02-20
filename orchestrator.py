@@ -239,6 +239,8 @@ class Orchestrator:
                 self._show_status("Vault locked for session", "success")
             if action.deploy:
                 self._deploy_sync()
+            if action.quit:
+                self._quit()
             if action.toggle_theme:
                 self._toggle_ui_mode()
             return action.handled
@@ -283,6 +285,9 @@ class Orchestrator:
         if action == "open_editor":
             return self._open_selected_block_editor()
         if action == "quit_no_save":
+            self._quit()
+            return True
+        if action == "quit":
             self._quit()
             return True
         if action == "export_html":

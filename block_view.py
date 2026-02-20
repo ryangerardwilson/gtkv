@@ -68,6 +68,7 @@ class VaultAction:
     toggle_theme: bool = False
     locked: bool = False
     deploy: bool = False
+    quit: bool = False
 
 
 class _TocBlockView(Gtk.Frame):
@@ -742,6 +743,8 @@ class BlockEditorView(Gtk.Box):
             return VaultAction(True)
         if action == "close":
             return VaultAction(True, close=True)
+        if action == "quit":
+            return VaultAction(True, quit=True)
         if action == "move_down":
             self._move_vault_selection(1)
             return VaultAction(True)
