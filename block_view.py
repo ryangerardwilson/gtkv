@@ -271,6 +271,8 @@ class BlockEditorView(Gtk.Box):
         )
         self.refresh_toc(document)
         self.refresh_heading_numbering(document)
+        self._column.queue_resize()
+        GLib.idle_add(self._column.queue_resize)
 
     def remove_widget_at(self, index: int, document: BlockDocument) -> None:
         if index < 0 or index >= len(self._block_widgets):
