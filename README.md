@@ -99,13 +99,11 @@ System dependencies are required for PyGObject and GTK4. The installer uses
 - `Enter` — open the selected text or code block in Vim.
 - `Enter` on a TOC block — open the outline drill.
 - Exit Vim — refreshes the block content in GTK.
-- `Ctrl+E` — export HTML alongside the document.
 - `Ctrl+D` — deploy (git add/commit/push) from the vault.
-- `q` — quit.
+- `Ctrl+Q` / `q` — quit.
 - `Escape` — return to document mode from vault mode.
 - `-v` — print installed version.
 - `-u` — upgrade to the latest release.
-- `-e` — export all `.gvim` recursively from the current vault.
 - `-q` — quickstart a new document with demo content (new files only).
 - `-h` — show CLI help.
 
@@ -142,7 +140,8 @@ Example `config.json` with keymap overrides:
         "last_block": "G",
         "open_editor": "<CR>",
         "quit_no_save": "q",
-        "export_html": "<C-e>",
+        "quit": "<C-q>",
+        "deploy_sync": "<C-d>",
         "help_toggle": "?",
         "paste_block": "p",
         "delete_block": "dd",
@@ -164,6 +163,14 @@ Example `config.json` with keymap overrides:
         "insert_latex": "<leader>bltx",
         "insert_map": "<leader>bmap"
       },
+      "visual": {
+        "move_down": "j",
+        "move_up": "k",
+        "delete_range": "d",
+        "yank_range": "y",
+        "exit_visual": "v",
+        "paste_block": "p"
+      },
       "toc": {
         "move_down": "j",
         "move_up": "k",
@@ -182,11 +189,13 @@ Example `config.json` with keymap overrides:
         "up": "h",
         "enter_or_open": "l",
         "close": "<Esc>",
+        "quit": "<C-q>",
         "copy": "yy",
         "cut": "dd",
         "paste": "p",
         "new_entry": "<leader>n",
         "rename": "<leader>rn",
+        "deploy_sync": "<C-d>",
         "toggle_theme": "<leader>m"
       },
       "help": {
