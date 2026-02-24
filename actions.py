@@ -295,6 +295,23 @@ def yank_selected_range(state: AppState) -> list[Block] | None:
     return blocks
 
 
+def blocks_to_text(blocks: Sequence[Block]) -> str:
+    parts: list[str] = []
+    for block in blocks:
+        if isinstance(block, TextBlock):
+            parts.append(block.text)
+        elif isinstance(block, ThreeBlock):
+            parts.append(block.source)
+        elif isinstance(block, PythonImageBlock):
+            parts.append(block.source)
+        elif isinstance(block, LatexBlock):
+            parts.append(block.source)
+        elif isinstance(block, MapBlock):
+            parts.append(block.source)
+    normalized = [part.rstrip("\n") for part in parts]
+    return "\n\n".join(normalized)
+
+
 def select_first(state: AppState) -> bool:
     if state.view is None:
         return False

@@ -37,6 +37,7 @@ from design_constants import colors_for, font
 from _version import __version__
 from app_state import AppState
 from block_model import (
+    Block,
     BlockDocument,
     MapBlock,
     PythonImageBlock,
@@ -386,7 +387,11 @@ class Orchestrator:
                 self._state.clipboard_blocks = yanked_blocks
                 self._state.clipboard_block = None
                 self._state.view.exit_visual_mode()
-                self._show_status("Yanked blocks", "success")
+                copied, error = self._copy_blocks_to_clipboard(yanked_blocks)
+                if copied:
+                    self._show_status("Yanked blocks", "success")
+                else:
+                    self._show_status(f"Yanked blocks; {error}", "error")
                 return True
             yanked = actions.yank_selected_block(self._state)
             if yanked is None:
@@ -484,6 +489,18 @@ class Orchestrator:
                 return True
             return False
         return False
+
+    def _copy_blocks_to_clipboard(self, blocks: Sequence[Block]) -> tuple[bool, str | None]:
+        text = actions.blocks_to_text(blocks)
+        if shutil.which("wl-copy") is None:
+            return False, "wl-copy not found"
+        try:
+            result = subprocess.run(["wl-copy"], input=text, text=True, check=False)
+        except OSError:
+            return False, "clipboard copy failed"
+        if result.returncode != 0:
+            return False, "clipboard copy failed"
+        return True, None
 
     def _open_toc_drill(self) -> bool:
         if self._state.document is None or self._state.view is None:
