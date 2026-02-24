@@ -96,6 +96,20 @@ window {
   background: var(--block-selected-background);
 }
 
+.block-range-start {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.block-range-middle {
+  border-radius: 0;
+}
+
+.block-range-end {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
 .help-overlay {
   pointer-events: none;
 }

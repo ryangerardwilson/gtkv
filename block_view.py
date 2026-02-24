@@ -1517,11 +1517,19 @@ class BlockEditorView(Gtk.Box):
         self._refresh_selection()
 
     def _refresh_selection(self) -> None:
+        start = None
+        end = None
+        multi_range = False
+        if self._visual_active:
+            start, end = self.get_visual_range()
+            multi_range = start != end
         for index, widget in enumerate(self._block_widgets):
             in_range = False
-            if self._visual_active:
-                start, end = self.get_visual_range()
+            if start is not None and end is not None:
                 in_range = start <= index <= end
+            widget.remove_css_class("block-range-start")
+            widget.remove_css_class("block-range-middle")
+            widget.remove_css_class("block-range-end")
             if index == self._selected_index:
                 widget.add_css_class("block-selected")
                 widget.remove_css_class("block-selected-range")
@@ -1531,6 +1539,14 @@ class BlockEditorView(Gtk.Box):
             else:
                 widget.remove_css_class("block-selected")
                 widget.remove_css_class("block-selected-range")
+            if not in_range or not multi_range:
+                continue
+            if index == start:
+                widget.add_css_class("block-range-start")
+            elif index == end:
+                widget.add_css_class("block-range-end")
+            else:
+                widget.add_css_class("block-range-middle")
 
     def _schedule_scroll_to_selected(self) -> None:
         if self._scroll_idle_id is not None:
