@@ -91,11 +91,13 @@ System dependencies are required for PyGObject and GTK4. The installer uses
 - `,i` — open the index drill.
 - `,v` — open vault mode.
 - `,m` — toggle light/dark mode.
+- `>` / `<` — demote/promote heading level.
 - `Ctrl+j/k` — move the selected block up/down.
 - `dd` — cut the selected block.
 - `yy` — yank the selected block.
 - `p` — paste the clipboard block after the selection.
 - `v` — visual mode to select multiple blocks with `j/k`, then `d` or `y`.
+- `y` in visual mode also copies block text to the system clipboard (Wayland `wl-copy`).
 - `Enter` — open the selected text or code block in Vim.
 - `Enter` on a TOC block — open the outline drill.
 - Exit Vim — refreshes the block content in GTK.
@@ -146,6 +148,8 @@ Example `config.json` with keymap overrides:
         "paste_block": "p",
         "delete_block": "dd",
         "yank_block": "yy",
+        "heading_demote": ">",
+        "heading_promote": "<",
         "toggle_theme": "<leader>m",
         "open_vault": "<leader>v",
         "open_toc": "<leader>i",
@@ -217,6 +221,7 @@ Guardrails:
 - Each action accepts exactly one key sequence (string value).
 - Unknown tokens, non-ASCII keys, and `Ctrl+Alt` combos are rejected.
 - Keymaps do not apply while typing in vault create/rename inputs.
+- Heading hierarchy is enforced: you cannot insert or promote to `h2..h6` unless the immediate parent exists above, and deletes are blocked if they would orphan child headings.
 
 ### Theme assumptions
 
