@@ -277,6 +277,29 @@ class BlockEditorView(Gtk.Box):
         self._column.queue_resize()
         GLib.idle_add(self._column.queue_resize)
 
+    def replace_widget_at(self, index: int, document: BlockDocument) -> bool:
+        if index < 0 or index >= len(self._block_widgets):
+            return False
+        block = document.blocks[index]
+        numbering = build_heading_numbering(document.blocks)
+        toc_text = _build_toc(
+            [item for item in document.blocks if isinstance(item, TextBlock)]
+        )
+        widget = self._build_widget(block, toc_text, self._ui_mode, numbering, index)
+        if widget is None:
+            return False
+        old_widget = self._block_widgets[index]
+        self._column.remove(old_widget)
+        self._block_widgets[index] = widget
+        prev_widget = self._block_widgets[index - 1] if index > 0 else None
+        self._column.insert_child_after(widget, prev_widget)
+        self.refresh_toc(document)
+        self.refresh_heading_numbering(document)
+        self._refresh_selection()
+        self._column.queue_resize()
+        GLib.idle_add(self._column.queue_resize)
+        return True
+
     def remove_widget_at(self, index: int, document: BlockDocument) -> None:
         if index < 0 or index >= len(self._block_widgets):
             return

@@ -19,6 +19,8 @@
         "paste_block": "p",
         "delete_block": "dd",
         "yank_block": "yy",
+        "heading_demote": ">",
+        "heading_promote": "<",
         "toggle_theme": "<leader>m",
         "open_vault": "<leader>v",
         "open_toc": "<leader>i",

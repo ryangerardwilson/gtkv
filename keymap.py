@@ -70,6 +70,8 @@ DEFAULT_KEYMAP: dict[str, Any] = {
             "paste_block": "p",
             "delete_block": "dd",
             "yank_block": "yy",
+            "heading_demote": ">",
+            "heading_promote": "<",
             "toggle_theme": "<leader>m",
             "open_vault": "<leader>v",
             "open_toc": "<leader>i",
@@ -274,6 +276,13 @@ _HELP_SECTIONS = [
     (
         "Blocks",
         [
+            {
+                "type": "pair",
+                "mode": "document",
+                "a": "heading_demote",
+                "b": "heading_promote",
+                "label": "heading level",
+            },
             {
                 "type": "single",
                 "mode": "document",

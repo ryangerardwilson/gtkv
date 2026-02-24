@@ -318,6 +318,16 @@ class Orchestrator:
                 return False
             self._state.view.toggle_visual_mode()
             return True
+        if action == "heading_demote":
+            if actions.shift_heading_level(self._state, 1):
+                self._persist_document()
+                return True
+            return False
+        if action == "heading_promote":
+            if actions.shift_heading_level(self._state, -1):
+                self._persist_document()
+                return True
+            return False
         if action == "quit_no_save":
             self._quit()
             return True
@@ -362,7 +372,7 @@ class Orchestrator:
             if self._state.view is not None and self._state.view.visual_active():
                 deleted_blocks = actions.delete_selected_range(self._state)
                 if deleted_blocks is None:
-                    self._show_status("Nothing to delete", "error")
+                    self._show_status("Cannot delete: would orphan headings", "error")
                     return True
                 self._state.clipboard_blocks = deleted_blocks
                 self._state.clipboard_block = None
@@ -371,7 +381,7 @@ class Orchestrator:
                 return True
             deleted = actions.delete_selected_block(self._state)
             if deleted is None:
-                self._show_status("Nothing to delete", "error")
+                self._show_status("Cannot delete: would orphan headings", "error")
                 return True
             self._state.clipboard_block = deleted
             self._state.clipboard_blocks = None
@@ -424,26 +434,71 @@ class Orchestrator:
                 return True
             return False
         if action == "insert_h2":
+            if self._state.document is not None and self._state.view is not None:
+                insert_index = self._state.view.get_selected_index() + 1
+                if not actions._has_parent_before(
+                    self._state.document.blocks,
+                    insert_index,
+                    "h2",
+                ):
+                    self._show_status("Insert h2 requires h1 above", "error")
+                    return True
             if actions.insert_text_block(self._state, kind="h2"):
                 self._persist_document()
                 return True
             return False
         if action == "insert_h3":
+            if self._state.document is not None and self._state.view is not None:
+                insert_index = self._state.view.get_selected_index() + 1
+                if not actions._has_parent_before(
+                    self._state.document.blocks,
+                    insert_index,
+                    "h3",
+                ):
+                    self._show_status("Insert h3 requires h2 above", "error")
+                    return True
             if actions.insert_text_block(self._state, kind="h3"):
                 self._persist_document()
                 return True
             return False
         if action == "insert_h4":
+            if self._state.document is not None and self._state.view is not None:
+                insert_index = self._state.view.get_selected_index() + 1
+                if not actions._has_parent_before(
+                    self._state.document.blocks,
+                    insert_index,
+                    "h4",
+                ):
+                    self._show_status("Insert h4 requires h3 above", "error")
+                    return True
             if actions.insert_text_block(self._state, kind="h4"):
                 self._persist_document()
                 return True
             return False
         if action == "insert_h5":
+            if self._state.document is not None and self._state.view is not None:
+                insert_index = self._state.view.get_selected_index() + 1
+                if not actions._has_parent_before(
+                    self._state.document.blocks,
+                    insert_index,
+                    "h5",
+                ):
+                    self._show_status("Insert h5 requires h4 above", "error")
+                    return True
             if actions.insert_text_block(self._state, kind="h5"):
                 self._persist_document()
                 return True
             return False
         if action == "insert_h6":
+            if self._state.document is not None and self._state.view is not None:
+                insert_index = self._state.view.get_selected_index() + 1
+                if not actions._has_parent_before(
+                    self._state.document.blocks,
+                    insert_index,
+                    "h6",
+                ):
+                    self._show_status("Insert h6 requires h5 above", "error")
+                    return True
             if actions.insert_text_block(self._state, kind="h6"):
                 self._persist_document()
                 return True

@@ -195,6 +195,8 @@ def delete_selected_block(state: AppState) -> Block | None:
     if not state.document.blocks:
         return None
     index = state.view.get_selected_index()
+    if _would_orphan_headings(state.document.blocks, index):
+        return None
     block = state.document.remove_block(index)
     if block is None:
         return None
@@ -216,6 +218,8 @@ def delete_selected_range(state: AppState) -> list[Block] | None:
     if not state.view.visual_active():
         return None
     start, end = state.view.get_visual_range()
+    if _would_orphan_heading_range(state.document.blocks, start, end):
+        return None
     deleted: list[Block] = []
     for index in range(end, start - 1, -1):
         block = state.document.remove_block(index)
@@ -293,6 +297,91 @@ def yank_selected_range(state: AppState) -> list[Block] | None:
             return None
     state.view.exit_visual_mode()
     return blocks
+
+
+def shift_heading_level(state: AppState, delta: int) -> bool:
+    if state.document is None or state.view is None:
+        return False
+    index = state.view.get_selected_index()
+    try:
+        block = state.document.blocks[index]
+    except IndexError:
+        return False
+    if not isinstance(block, TextBlock):
+        return False
+    headings = ["h1", "h2", "h3", "h4", "h5", "h6"]
+    if block.kind not in headings:
+        return False
+    current = headings.index(block.kind)
+    target = max(0, min(current + delta, len(headings) - 1))
+    target_kind = headings[target]
+    if target_kind == block.kind:
+        return False
+    if target > 0 and not _has_parent_before(state.document.blocks, index, target_kind):
+        return False
+    original_text = block.text
+    state.document.remove_block(index)
+    state.view.remove_widget_at(index, state.document)
+    insert_after = index - 1
+    state.document.insert_block_after(insert_after, TextBlock(original_text, kind=target_kind))
+    inserted_index = min(index, len(state.document.blocks) - 1)
+    inserted_block = state.document.blocks[inserted_index]
+    state.view.insert_widget_after(insert_after, inserted_block, state.document)
+    state.view.replace_widget_at(inserted_index, state.document)
+    state.view.refresh_heading_numbering(state.document)
+    state.view.set_selected_index(inserted_index)
+    return True
+
+
+def _has_parent_before(blocks: Sequence[Block], index: int, kind: str) -> bool:
+    headings = ["h1", "h2", "h3", "h4", "h5", "h6"]
+    if kind not in headings:
+        return True
+    level = headings.index(kind)
+    if level == 0:
+        return True
+    required_level = level - 1
+    for block in reversed(blocks[:index]):
+        if not isinstance(block, TextBlock):
+            continue
+        if block.kind not in headings:
+            continue
+        seen_level = headings.index(block.kind)
+        if seen_level < required_level:
+            return False
+        if seen_level == required_level:
+            return True
+        continue
+    return False
+
+
+def _would_orphan_headings(blocks: Sequence[Block], remove_index: int) -> bool:
+    remaining = [block for i, block in enumerate(blocks) if i != remove_index]
+    return _has_orphaned_heading(remaining)
+
+
+def _would_orphan_heading_range(blocks: Sequence[Block], start: int, end: int) -> bool:
+    remaining = [block for i, block in enumerate(blocks) if not (start <= i <= end)]
+    return _has_orphaned_heading(remaining)
+
+
+def _has_orphaned_heading(blocks: Sequence[Block]) -> bool:
+    headings = ["h1", "h2", "h3", "h4", "h5", "h6"]
+    stack: list[str] = []
+    for block in blocks:
+        if not isinstance(block, TextBlock):
+            continue
+        if block.kind not in headings:
+            continue
+        level = headings.index(block.kind) + 1
+        if level > 1 and len(stack) < level - 1:
+            return True
+        stack = stack[: level - 1]
+        if len(stack) < level:
+            stack.append(block.kind)
+        else:
+            stack[level - 1] = block.kind
+    return False
 
 
 def blocks_to_text(blocks: Sequence[Block]) -> str:
