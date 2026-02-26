@@ -373,6 +373,9 @@ def _build_html(
         "      .block-map .map-pane { width: 100%; height: 100%; }\n"
         '      :root[data-theme="dark"] .block-map .map-pane.light { display: none; }\n'
         '      :root[data-theme="light"] .block-map .map-pane.dark { display: none; }\n'
+        "      @media (max-width: 768px) {\n"
+        "        .block-latex { font-size: 16px; }\n"
+        "      }\n"
         "    </style>\n"
         "  </head>\n"
         "  <body>\n"
