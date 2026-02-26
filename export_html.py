@@ -233,22 +233,21 @@ def _build_html(
         f"      .block-h5 {{ font-size: {font.export_h5}; font-weight: 600; color: var(--h5-color); }}\n"
         f"      .block-h6 {{ font-size: {font.export_h6}; font-weight: 600; color: var(--h6-color); }}\n"
         f"      .block-body {{ font-size: {font.export_body}; line-height: 1.6; color: var(--body-color); white-space: pre-wrap; }}\n"
-        f"      .block-toc {{ font-size: {font.export_toc}; color: var(--toc-color); white-space: pre-wrap; }}\n"
+        f"      .block-toc {{ font-size: {font.export_toc}; color: var(--toc-color); }}\n"
         "      .block-toc a { color: inherit; text-decoration: none; }\n"
         "      .block-toc a:visited { color: inherit; }\n"
         "      .block-toc a:hover { text-decoration: underline; }\n"
         f"      .toc-index {{ font-size: {font.export_h3}; font-weight: 600; color: var(--h3-color); margin-bottom: 4px; }}\n"
         "      .toc-empty { color: var(--toc-color); }\n"
-        "      .toc-line { display: block; line-height: 0.2; margin: 0; }\n"
-        "      .toc-line.depth-2 { padding-left: 16px; }\n"
-        "      .toc-line.depth-3 { padding-left: 32px; }\n"
-        "      .toc-line.depth-4 { padding-left: 48px; }\n"
-        "      .toc-line.depth-5 { padding-left: 64px; }\n"
-        "      .toc-line.depth-6 { padding-left: 80px; }\n"
-        "      .doc-modal .toc-line { line-height: 1.4; margin: 4px 0; }\n"
-        "      .toc-line.depth-4 { padding-left: 48px; }\n"
-        "      .toc-line.depth-5 { padding-left: 64px; }\n"
-        "      .toc-line.depth-6 { padding-left: 80px; }\n"
+        "      .toc-list { list-style: none; margin: 0; padding: 0; }\n"
+        "      .toc-item { margin: 4px 0; line-height: 1.35; }\n"
+        "      .toc-item.depth-2 { padding-left: 12px; }\n"
+        "      .toc-item.depth-3 { padding-left: 24px; }\n"
+        "      .toc-item.depth-4 { padding-left: 36px; }\n"
+        "      .toc-item.depth-5 { padding-left: 48px; }\n"
+        "      .toc-item.depth-6 { padding-left: 60px; }\n"
+        "      .toc-item a { overflow-wrap: anywhere; word-break: break-word; }\n"
+        "      .doc-modal .toc-item { line-height: 1.45; margin: 6px 0; }\n"
         "      .block-pyimage { text-align: center; }\n"
         "      .block-pyimage img { max-width: 100%; height: auto; display: inline-block; }\n"
         '      :root[data-theme="dark"] .block-pyimage img.light { display: none; }\n'
@@ -343,7 +342,7 @@ def _build_html(
         "      .index-body ul { list-style: none; margin: 0; padding-left: 16px; }\n"
         "      .index-body li { margin: 4px 0; }\n"
         "      .index-body .dir-name { color: var(--muted-color, var(--body-text)); font-weight: 600; }\n"
-        "      .index-body a { color: var(--body-text); text-decoration: none; }\n"
+        "      .index-body a { color: var(--body-text); text-decoration: none; overflow-wrap: anywhere; word-break: break-word; }\n"
         "      .index-body a:hover { color: var(--link-color, var(--body-text)); text-decoration: underline; }\n"
         "      .index-body a:focus { outline: none; }\n"
         "      .index-body a.nav-selected {\n"
@@ -760,29 +759,37 @@ def _build_toc(
 
     if not headings:
         return (
+            '<nav class="toc-nav" aria-label="Document index">'
             '<div class="toc-index">Index</div>'
-            '<div class="toc-empty">(No headings yet)</div>',
+            '<div class="toc-empty">(No headings yet)</div>'
+            "</nav>",
             heading_ids,
         )
 
-    lines = ['<div class="toc-index">Index</div>']
+    lines = [
+        '<nav class="toc-nav" aria-label="Document index">',
+        '<div class="toc-index">Index</div>',
+        '<ul class="toc-list">',
+    ]
     for index, kind, text in headings:
         anchor = heading_ids.get(index)
         if not anchor:
             continue
-        anchor_link = f'- <a href="#{anchor}">{_escape_html(text)}</a>'
+        anchor_link = f'<a href="#{anchor}">{_escape_html(text)}</a>'
+        depth = "6"
         if kind == "h1":
-            lines.append(f'<div class="toc-line depth-1">{anchor_link}</div>')
+            depth = "1"
         elif kind == "h2":
-            lines.append(f'<div class="toc-line depth-2">{anchor_link}</div>')
+            depth = "2"
         elif kind == "h3":
-            lines.append(f'<div class="toc-line depth-3">{anchor_link}</div>')
+            depth = "3"
         elif kind == "h4":
-            lines.append(f'<div class="toc-line depth-4">{anchor_link}</div>')
+            depth = "4"
         elif kind == "h5":
-            lines.append(f'<div class="toc-line depth-5">{anchor_link}</div>')
-        else:
-            lines.append(f'<div class="toc-line depth-6">{anchor_link}</div>')
+            depth = "5"
+        lines.append(f'<li class="toc-item depth-{depth}">{anchor_link}</li>')
+    lines.append("</ul>")
+    lines.append("</nav>")
     return "\n".join(lines), heading_ids
 
 
@@ -866,7 +873,7 @@ def _build_index_html(paths: list[tuple[Path, str]], ui_mode: str, title: str) -
         "      ul { list-style: none; margin: 0; padding-left: 18px; }\n"
         "      li { margin: 6px 0; }\n"
         "      .dir-name { color: var(--muted-color); font-weight: 600; }\n"
-        "      a { color: var(--link-color); text-decoration: none; }\n"
+        "      a { color: var(--link-color); text-decoration: none; overflow-wrap: anywhere; word-break: break-word; }\n"
         "      a:hover { text-decoration: underline; }\n"
         "      a:focus { outline: none; }\n"
         "      a.nav-selected { text-decoration: underline; }\n"
