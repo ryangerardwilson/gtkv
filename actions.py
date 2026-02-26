@@ -529,8 +529,9 @@ _PY_GUIDANCE = (
     '    title="My Plot"\n'
     ")\n"
     "# Types: \n"
-    "- plot_func: x = sequence[float] \n"
-    "- y* = sequence[float] or callable(x) -> sequence[float]\n"
+    "- plot_func: x = sequence[float] | float \n"
+    "- y* = float | sequence[float] or callable(x) -> float | sequence[float]\n"
+    "- if x is float, each y resolves to one value and is drawn as a horizontal line\n"
     "- title = str | None\n"
     '"""\n\n'
 )
