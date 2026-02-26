@@ -374,6 +374,7 @@ def _build_html(
         '      :root[data-theme="dark"] .block-map .map-pane.light { display: none; }\n'
         '      :root[data-theme="light"] .block-map .map-pane.dark { display: none; }\n'
         "      @media (max-width: 768px) {\n"
+        "        main { padding: 24px 0 80px; }\n"
         "        .block-latex { font-size: 16px; }\n"
         "      }\n"
         "    </style>\n"
